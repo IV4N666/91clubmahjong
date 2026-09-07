@@ -32,9 +32,9 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   // 尺寸预设 (移动端自适应优化，避免手机端排版挤出换行错位)
   const sizeClasses = {
     xs: 'w-7 h-10 text-xs rounded',
-    sm: 'w-8 sm:w-9 h-11 sm:h-12 text-xs sm:text-sm rounded-md',
-    md: 'w-9 sm:w-11 h-13 sm:h-16 text-sm sm:text-base rounded-md',
-    lg: 'w-12 sm:w-14 h-17 sm:h-20 text-lg sm:text-xl rounded-lg',
+    sm: 'w-8 sm:w-9 h-[44px] sm:h-12 text-xs sm:text-sm rounded-md',
+    md: 'w-[38px] sm:w-11 h-[52px] sm:h-16 text-sm sm:text-base rounded-md',
+    lg: 'w-12 sm:w-14 h-[68px] sm:h-20 text-lg sm:text-xl rounded-lg',
     xl: 'w-14 sm:w-16 h-20 sm:h-24 text-xl sm:text-2xl rounded-xl',
   };
 
@@ -71,20 +71,38 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
       }
       case 'dragon': {
         const char = tile.value === 'zhong' ? '中' : tile.value === 'fa' ? '發' : '白';
+        const sub = tile.value === 'zhong' ? 'RED' : tile.value === 'fa' ? 'GREEN' : 'WHITE';
+        const color = tile.color || (tile.value === 'zhong' ? '#dc2626' : tile.value === 'fa' ? '#15803d' : '#0284c7');
+
+        if (tile.value === 'bai') {
+          return (
+            <div className="flex flex-col items-center justify-center w-full h-full select-none py-0.5">
+              <div className="w-[72%] h-[68%] border-2 border-dashed border-sky-600 rounded flex items-center justify-center bg-sky-50/50">
+                <span className="font-mahjong font-black text-xs sm:text-sm text-sky-600 leading-none">
+                  白
+                </span>
+              </div>
+              <span className="text-[0.55em] font-semibold text-sky-600 uppercase tracking-tighter mt-0.5">
+                {sub}
+              </span>
+            </div>
+          );
+        }
+
         return (
           <div className="flex flex-col items-center justify-center w-full h-full select-none">
-            {tile.value === 'bai' ? (
-              <div className="w-3/5 h-4/5 border-2 border-dashed border-sky-600 rounded flex items-center justify-center">
-                <span className="text-[0.6em] font-bold text-sky-600">白</span>
-              </div>
-            ) : (
-              <span
-                className="font-mahjong font-black leading-none"
-                style={{ color: tile.color || '#dc2626' }}
-              >
-                {char}
-              </span>
-            )}
+            <span
+              className="font-mahjong font-black leading-tight text-base sm:text-lg"
+              style={{ color }}
+            >
+              {char}
+            </span>
+            <span
+              className="text-[0.55em] font-semibold uppercase tracking-tighter"
+              style={{ color }}
+            >
+              {sub}
+            </span>
           </div>
         );
       }
@@ -144,13 +162,14 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   };
 
   return (
-    <div className="relative inline-block group">
+    <div className="relative inline-block group shrink-0">
       <button
         type="button"
         onClick={handleClick}
         disabled={disabled}
         className={`
           ${sizeClasses[size]}
+          shrink-0
           relative flex items-center justify-center transition-all duration-150 transform
           bg-gradient-to-b from-[#ffffff] to-[#f4eee1]
           border border-[#d7ceb8] mahjong-tile-shadow

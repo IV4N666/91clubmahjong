@@ -6,6 +6,12 @@ export default {
   ],
   theme: {
     extend: {
+      spacing: {
+        '11': '2.75rem',
+        '13': '3.25rem',
+        '15': '3.75rem',
+        '17': '4.25rem',
+      },
       colors: {
         mahjong: {
           green: {

@@ -60,6 +60,12 @@ export interface RuleSettings {
   allAnimalsFan: number; // 抓齐四只动物番数 (默认 5番)
   noFeiBonusFan: number; // 无飞/清飞加番 (默认 1番)
   fourFeiWinFan: number; // 4只飞满天飞直接胡牌番数 (默认 10番或满胡)
+  // 飞牌结算模式：'cash' (不算番，直接算钱，如RM 0.50/张) 或 'fan' (+1番/张)
+  feiCalculationMode: 'cash' | 'fan';
+  feiCashAmount: number; // 飞牌单价现金金额 (RM)，支持自由编辑，默认 0.50
+  // 开杠即时收钱：开杠立刻收取 N 番价值的现金 (例如底价 0.20 收 2 番 = 0.40)
+  enableKongImmediateCash: boolean;
+  kongImmediateFan: number; // 开杠收取的番数，默认 2 番
 }
 
 export interface CalculationResult {
@@ -73,6 +79,8 @@ export interface CalculationResult {
     shooterPays: number;
     eachPayIfZimo: number;
     biteBonusEarned: number;
+    feiCashEarned: number;
+    kongCashEarned: number;
     ruleSummary: string;
   };
   handPatternNameZh: string;

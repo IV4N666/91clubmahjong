@@ -3,6 +3,7 @@ import {
   MahjongTileData,
   Meld,
   MeldType,
+  RuleSettings,
 } from '../types/mahjong';
 import {
   TONG_TILES,
@@ -27,6 +28,7 @@ interface TilePickerProps {
   melds?: Meld[];
   discardPool?: MahjongTileData[];
   lang: 'zh' | 'en';
+  rules?: RuleSettings;
 }
 
 type PickerTab = 'tong' | 'honors' | 'fei' | 'bonus' | 'quick_meld';
@@ -41,6 +43,7 @@ export const TilePicker: React.FC<TilePickerProps> = ({
   melds = [],
   discardPool = [],
   lang,
+  rules,
 }) => {
   const [activeTab, setActiveTab] = useState<PickerTab>('tong');
   const [targetMode, setTargetMode] = useState<'hand' | 'pool'>('hand');
@@ -322,9 +325,13 @@ export const TilePicker: React.FC<TilePickerProps> = ({
               })}
             </div>
             <p className="text-xs text-amber-200/90 max-w-md">
-              {lang === 'zh'
-                ? '⭐ 飞牌是大马三人麻将的核心！每张飞牌可代替任何筒子或字牌。摸满 4 张飞牌（全飞/满天飞）直接大满贯胡牌！'
-                : '⭐ Fei is the Joker wildcard in Malaysian 3P Mahjong. Collecting all 4 Fei triggers an instant win!'}
+              {rules?.feiCalculationMode === 'cash'
+                ? (lang === 'zh'
+                    ? `⭐ 飞牌直计现金模式：每张飞牌直接收取现金 RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)}（不算入手牌番数）。摸满 4 张飞牌（全飞）直接大满贯胡牌！可在设置中修改价格。`
+                    : `⭐ Direct Cash Mode: Each Fei yields RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)} cash (0 Fan). Collecting 4 Fei triggers an instant win!`)
+                : (lang === 'zh'
+                    ? '⭐ 飞牌是大马三人麻将的核心！每张飞牌可代替任何筒子或字牌。摸满 4 张飞牌（全飞/满天飞）直接大满贯胡牌！'
+                    : '⭐ Fei is the Joker wildcard in Malaysian 3P Mahjong. Collecting all 4 Fei triggers an instant win!')}
             </p>
           </div>
         )}
@@ -436,18 +443,33 @@ export const TilePicker: React.FC<TilePickerProps> = ({
 
             {/* 快捷杠牌 */}
             <div>
-              <span className="font-bold text-amber-300 block mb-1.5">
-                {lang === 'zh' ? '一键添加明杠/暗杠 (4张)：' : 'Quick Kongs (4 of a kind):'}
-              </span>
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                <span className="font-bold text-amber-300 block">
+                  {lang === 'zh' ? '一键添加明杠/暗杠 (4张)：' : 'Quick Kongs (4 of a kind):'}
+                </span>
+                {rules?.enableKongImmediateCash && (
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/90 px-2 py-0.5 rounded-full border border-amber-700">
+                    ⚡ {lang === 'zh'
+                      ? `开杠即收 ${rules.kongImmediateFan ?? 2} 番 (RM ${(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)})`
+                      : `Kong Pays ${rules.kongImmediateFan ?? 2} Fan (RM ${(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)})`}
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1.5">
-                {TONG_TILES.slice(0, 5).map((t) => (
+                {TONG_TILES.map((t) => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => handleQuickKong(t, false)}
-                    className="px-2 py-1 rounded bg-emerald-950/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-700"
+                    className="px-2 py-1 rounded bg-emerald-950/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-700 text-xs transition"
+                    title={`明杠 ${t.nameZh}${rules?.enableKongImmediateCash ? ` (+RM ${(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)})` : ''}`}
                   >
                     明杠 {t.nameZh}
+                    {rules?.enableKongImmediateCash && (
+                      <span className="text-[10px] text-amber-400 ml-1 font-bold">
+                        +RM{(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)}
+                      </span>
+                    )}
                   </button>
                 ))}
                 {DRAGON_TILES.map((t) => (
@@ -455,9 +477,15 @@ export const TilePicker: React.FC<TilePickerProps> = ({
                     key={t.id}
                     type="button"
                     onClick={() => handleQuickKong(t, true)}
-                    className="px-2 py-1 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800"
+                    className="px-2 py-1 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800 text-xs transition"
+                    title={`暗杠 ${t.nameZh}${rules?.enableKongImmediateCash ? ` (+RM ${(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)})` : ''}`}
                   >
                     暗杠 {t.nameZh}
+                    {rules?.enableKongImmediateCash && (
+                      <span className="text-[10px] text-amber-300 ml-1 font-bold">
+                        +RM{(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

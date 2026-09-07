@@ -71,6 +71,17 @@ export const FanResultModal: React.FC<FanResultModalProps> = ({
 
   // 复制结算单到剪贴板，方便发到微信或 WhatsApp 群
   const handleCopyReceipt = () => {
+    const bonusReceiptLines: string[] = [];
+    if (payout.biteBonusEarned > 0) {
+      bonusReceiptLines.push(`• 🐾 咬到现金奖励：+RM ${payout.biteBonusEarned.toFixed(2)}`);
+    }
+    if (payout.feiCashEarned > 0) {
+      bonusReceiptLines.push(`• ⭐ 飞牌直计现金：+RM ${payout.feiCashEarned.toFixed(2)} (不算番)`);
+    }
+    if (payout.kongCashEarned > 0) {
+      bonusReceiptLines.push(`• ⚡ 开杠即刻收钱：+RM ${payout.kongCashEarned.toFixed(2)} (${rules.kongImmediateFan ?? 2}番/组)`);
+    }
+
     const lines = [
       `🀄 【马来西亚三人麻将 结算单】`,
       `牌型：${handPatternNameZh}`,
@@ -78,7 +89,8 @@ export const FanResultModal: React.FC<FanResultModalProps> = ({
       `总番数：${totalFan} 番${rules.maxFan > 0 && totalFan > rules.maxFan ? ` (封顶 ${effectiveFan} 番)` : ''}`,
       `底价：RM ${payout.basePrice.toFixed(2)}`,
       `-----------------------`,
-      ...fanItems.map(item => `• ${item.nameZh}：+${item.fan} 番`),
+      ...fanItems.map(item => `• ${item.nameZh}：${item.fan > 0 ? `+${item.fan} 番` : '直计现金'}`),
+      ...(bonusReceiptLines.length > 0 ? [`--- 即时现金 ---`, ...bonusReceiptLines] : []),
       `-----------------------`,
       conditions.isZimo
         ? `💰 两家各付：RM ${payout.eachPayIfZimo.toFixed(2)} | 赢家总收：RM ${payout.winnerReceivedTotal.toFixed(2)}`
@@ -192,6 +204,30 @@ export const FanResultModal: React.FC<FanResultModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* 额外即时现金标签条 */}
+            {((payout.feiCashEarned ?? 0) > 0 || (payout.kongCashEarned ?? 0) > 0 || (payout.biteBonusEarned ?? 0) > 0) && (
+              <div className="mt-3 pt-2.5 border-t border-emerald-800/60 flex flex-wrap items-center justify-center gap-2 text-[11px]">
+                {(payout.feiCashEarned ?? 0) > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-600/70 text-amber-300 font-bold flex items-center gap-1">
+                    <span>⭐ 飞牌现金(直计现金):</span>
+                    <span className="text-amber-200">+RM {(payout.feiCashEarned ?? 0).toFixed(2)}</span>
+                  </span>
+                )}
+                {(payout.kongCashEarned ?? 0) > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-600/70 text-amber-300 font-bold flex items-center gap-1">
+                    <span>⚡ 开杠即刻收钱:</span>
+                    <span className="text-amber-200">+RM {(payout.kongCashEarned ?? 0).toFixed(2)}</span>
+                  </span>
+                )}
+                {(payout.biteBonusEarned ?? 0) > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-900/80 border border-emerald-700 text-emerald-200 font-bold flex items-center gap-1">
+                    <span>🐾 咬到奖励:</span>
+                    <span className="text-emerald-100">+RM {(payout.biteBonusEarned ?? 0).toFixed(2)}</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 番数组成明细 */}

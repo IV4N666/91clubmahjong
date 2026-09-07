@@ -26,10 +26,17 @@ export const DEFAULT_RULES: RuleSettings = {
   allAnimalsFan: 5, // 抓齐四只动物 5 番
   noFeiBonusFan: 1, // 清飞 (无飞牌胡牌) 额外奖励 1 番
   fourFeiWinFan: 10, // 4只飞牌直接满胡 (10番)
+  feiCalculationMode: 'cash', // 默认飞牌不算番，直接算现金 (如RM 0.50/张或RM 1.00/张)
+  feiCashAmount: 0.50, // 默认每张飞牌 RM 0.50 (可自由编辑)
+  enableKongImmediateCash: true, // 默认开杠即刻收钱
+  kongImmediateFan: 2, // 默认开杠收 2 番的钱 (例如底价 0.20 即收 0.40)
 };
 
 // 预设筹码底价供用户一键选择
 export const PRESET_BASE_PRICES = [0.10, 0.20, 0.50, 1.00, 2.00, 5.00, 10.00];
+
+// 预设飞牌单价供用户一键选择
+export const PRESET_FEI_PRICES = [0.20, 0.50, 1.00, 2.00, 5.00];
 
 // 经典阶梯倍数 (5番=1倍, 6番=2倍, 7番=3倍, 8番=4倍, 9番=5倍, 10番=6倍...)
 export function getClassicTierMultiplier(fan: number): number {

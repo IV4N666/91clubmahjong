@@ -47,8 +47,10 @@ export function calculateMahjongScore(
   const feiInHandCount = handTiles.filter(t => t.category === 'fei').length;
 
   // ----------------------------------------------------
-  // 2. 飞牌 (百搭) 番数
+  // 2. 飞牌 (百搭) 番数 / 现金
   // ----------------------------------------------------
+  const isFeiCashMode = rules.feiCalculationMode === 'cash';
+
   if (feiInHandCount >= 4) {
     fanItems.push({
       id: 'four_fei',
@@ -59,7 +61,31 @@ export function calculateMahjongScore(
       descriptionEn: 'Holding all 4 Fei jokers is an instant winning hand.',
       category: 'fei',
     });
+  } else if (isFeiCashMode) {
+    // 飞牌不算番，直接算现金
+    if (feiInHandCount > 0) {
+      fanItems.push({
+        id: 'fei_in_hand_cash',
+        nameZh: `飞牌 (${feiInHandCount}张 - 直计现金)`,
+        nameEn: `Joker Tiles (${feiInHandCount} - Direct Cash)`,
+        fan: 0,
+        descriptionZh: `飞牌不算番，每张直接收取现金 RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)}。`,
+        descriptionEn: `Fei jokers yield 0 Fan, paying RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)} cash each.`,
+        category: 'fei',
+      });
+    } else if (rules.noFeiBonusFan > 0 && isWin) {
+      fanItems.push({
+        id: 'no_fei',
+        nameZh: '无飞 (清飞)',
+        nameEn: 'Zero Jokers (Clean Hand)',
+        fan: rules.noFeiBonusFan,
+        descriptionZh: '手中一张飞牌都没用，纯正胡牌奖励 +1 番！',
+        descriptionEn: 'Won without using any Fei jokers.',
+        category: 'fei',
+      });
+    }
   } else {
+    // 传统模式：每张飞牌 +1 番
     if (feiInHandCount > 0) {
       fanItems.push({
         id: 'fei_in_hand',
@@ -160,26 +186,35 @@ export function calculateMahjongScore(
     });
   }
 
-  // 杠牌番
+  // 杠牌番与即时开杠收钱
+  const kongImmediateFan = rules.kongImmediateFan ?? 2;
+  const kongCashPerKong = Number((rules.basePrice * kongImmediateFan).toFixed(2));
+
   melds.forEach(m => {
     if (m.type === 'kong_concealed') {
+      const kongRewardDesc = rules.enableKongImmediateCash
+        ? ` [即收${kongImmediateFan}番 RM ${kongCashPerKong.toFixed(2)}]`
+        : '';
       fanItems.push({
         id: `kong_concealed_${m.id}`,
-        nameZh: `暗杠 (${m.tiles[0]?.nameZh || '牌'})`,
-        nameEn: 'Concealed Kong',
+        nameZh: `暗杠 (${m.tiles[0]?.nameZh || '牌'})${kongRewardDesc}`,
+        nameEn: `Concealed Kong${rules.enableKongImmediateCash ? ` (+${kongImmediateFan}F Cash)` : ''}`,
         fan: 2,
-        descriptionZh: '手中摸齐 4 张自开暗杠 (+2 番)。',
-        descriptionEn: 'Concealed Kong (+2 Fan).',
+        descriptionZh: `手中摸齐 4 张自开暗杠 (+2 番)${rules.enableKongImmediateCash ? `，开杠即刻收 ${kongImmediateFan} 番现金 (RM ${kongCashPerKong.toFixed(2)})` : ''}。`,
+        descriptionEn: `Concealed Kong (+2 Fan)${rules.enableKongImmediateCash ? `, instant payout ${kongImmediateFan} Fan cash (RM ${kongCashPerKong.toFixed(2)})` : ''}.`,
         category: 'base',
       });
     } else if (m.type === 'kong_exposed') {
+      const kongRewardDesc = rules.enableKongImmediateCash
+        ? ` [即收${kongImmediateFan}番 RM ${kongCashPerKong.toFixed(2)}]`
+        : '';
       fanItems.push({
         id: `kong_exposed_${m.id}`,
-        nameZh: `明杠 (${m.tiles[0]?.nameZh || '牌'})`,
-        nameEn: 'Exposed Kong',
+        nameZh: `明杠 (${m.tiles[0]?.nameZh || '牌'})${kongRewardDesc}`,
+        nameEn: `Exposed Kong${rules.enableKongImmediateCash ? ` (+${kongImmediateFan}F Cash)` : ''}`,
         fan: 1,
-        descriptionZh: '开明杠/补杠 (+1 番)。',
-        descriptionEn: 'Exposed Kong (+1 Fan).',
+        descriptionZh: `开明杠/补杠 (+1 番)${rules.enableKongImmediateCash ? `，开杠即刻收 ${kongImmediateFan} 番现金 (RM ${kongCashPerKong.toFixed(2)})` : ''}。`,
+        descriptionEn: `Exposed Kong (+1 Fan)${rules.enableKongImmediateCash ? `, instant payout ${kongImmediateFan} Fan cash (RM ${kongCashPerKong.toFixed(2)})` : ''}.`,
         category: 'base',
       });
     }
@@ -475,35 +510,56 @@ export function calculateMahjongScore(
     }
   }
 
-  // 动物咬到现金 (每只咬到即时额外给)
+  // 额外即时现金结算：动物咬到、飞牌直接算现金、开杠即时收钱
   const biteCashTotal = rules.enableAnimalBiteBonus ? biteCount * rules.animalBiteCashAmount : 0;
+  
+  // 飞牌现金 (若开启飞牌不算番、直接算钱模式)
+  const feiCashTotal = isFeiCashMode ? Number((feiInHandCount * (rules.feiCashAmount ?? 0.50)).toFixed(2)) : 0;
+  
+  // 开杠即时收钱 (若开启开杠即时收钱，每组收 N 番钱)
+  const exposedKongCount = melds.filter(m => m.type === 'kong_exposed').length;
+  const concealedKongCount = melds.filter(m => m.type === 'kong_concealed').length;
+  const totalKongCount = exposedKongCount + concealedKongCount;
+  const kongCashTotal = rules.enableKongImmediateCash
+    ? Number((totalKongCount * kongCashPerKong).toFixed(2))
+    : 0;
+
+  // 每位闲家额外需付的现金总和
+  const extraBountiesPerPlayer = Number((biteCashTotal + feiCashTotal + kongCashTotal).toFixed(2));
 
   let shooterPays = 0;
   let eachPayIfZimo = 0;
   let winnerReceivedTotal = 0;
 
   if (winningConditions.isZimo) {
-    // 自摸：另外两家每个人都要付出 scorePerUnit + biteCashTotal
-    eachPayIfZimo = Number((scorePerUnit + biteCashTotal).toFixed(2));
+    // 自摸：另外两家每个人都要付出 scorePerUnit + extraBountiesPerPlayer
+    eachPayIfZimo = Number((scorePerUnit + extraBountiesPerPlayer).toFixed(2));
     winnerReceivedTotal = Number((eachPayIfZimo * 2).toFixed(2));
   } else {
     // 出冲 (放铳)
     if (rules.shooterPaysAll) {
-      // 出冲者一人包全家 (赔两份钱)
-      shooterPays = Number((scorePerUnit * 2 + biteCashTotal * 2).toFixed(2));
+      // 出冲者一人包全家 (赔两份番数钱 + 两份额外即时现金)
+      shooterPays = Number((scorePerUnit * 2 + extraBountiesPerPlayer * 2).toFixed(2));
       winnerReceivedTotal = shooterPays;
     } else {
-      // 仅放铳者付一份
-      shooterPays = Number((scorePerUnit + biteCashTotal).toFixed(2));
+      // 仅放铳者付一份番数钱 + 两份额外即时现金
+      shooterPays = Number((scorePerUnit + extraBountiesPerPlayer * 2).toFixed(2));
       winnerReceivedTotal = shooterPays;
     }
   }
 
+  // 拼接清晰的结算说明文字
+  const bonusItems: string[] = [];
+  if (biteCashTotal > 0) bonusItems.push(`咬花 RM ${(biteCashTotal * 2).toFixed(2)}`);
+  if (feiCashTotal > 0) bonusItems.push(`飞牌${feiInHandCount}张 RM ${(feiCashTotal * 2).toFixed(2)}`);
+  if (kongCashTotal > 0) bonusItems.push(`开杠${totalKongCount}组(${kongImmediateFan}番) RM ${(kongCashTotal * 2).toFixed(2)}`);
+  const bonusNote = bonusItems.length > 0 ? `（含额外即时现金：${bonusItems.join('、')}）` : '';
+
   let ruleSummary = '';
   if (winningConditions.isZimo) {
-    ruleSummary = `自摸 ${effectiveFan} 番（底 RM ${basePrice.toFixed(2)}）：两家各付 RM ${eachPayIfZimo.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}。`;
+    ruleSummary = `自摸 ${effectiveFan} 番（底 RM ${basePrice.toFixed(2)}）：两家各付 RM ${eachPayIfZimo.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
   } else {
-    ruleSummary = `出冲 ${effectiveFan} 番：放炮者${rules.shooterPaysAll ? '一人包赔' : '出冲'}付 RM ${shooterPays.toFixed(2)}。`;
+    ruleSummary = `出冲 ${effectiveFan} 番：放炮者${rules.shooterPaysAll ? '一人包赔' : '出冲'}付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
   }
 
   return {
@@ -516,7 +572,9 @@ export function calculateMahjongScore(
       winnerReceivedTotal,
       shooterPays,
       eachPayIfZimo,
-      biteBonusEarned: biteCashTotal * 2,
+      biteBonusEarned: Number((biteCashTotal * 2).toFixed(2)),
+      feiCashEarned: Number((feiCashTotal * 2).toFixed(2)),
+      kongCashEarned: Number((kongCashTotal * 2).toFixed(2)),
       ruleSummary,
     },
     handPatternNameZh: handPatternZh,

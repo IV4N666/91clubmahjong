@@ -3,6 +3,7 @@ import {
   MahjongTileData,
   Meld,
   WinningConditions,
+  RuleSettings,
   WindValue,
 } from '../types/mahjong';
 import { MahjongTile } from './MahjongTile';
@@ -22,6 +23,7 @@ interface HandDisplayProps {
   onCalculate: () => void;
   isWinReady: boolean;
   totalTilesCount: number;
+  rules?: RuleSettings;
 }
 
 export const HandDisplay: React.FC<HandDisplayProps> = ({
@@ -37,6 +39,7 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
   onCalculate,
   isWinReady,
   totalTilesCount,
+  rules,
 }) => {
   // 检查动物咬到
   const hasCat = flowers.some(f => f.id === 'animal_cat');
@@ -148,6 +151,11 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
                   <span className="text-[10px] font-bold text-amber-400 mr-1 writing-mode-vertical">
                     {meldTypeName}
                   </span>
+                  {(meld.type === 'kong_exposed' || meld.type === 'kong_concealed') && rules?.enableKongImmediateCash && (
+                    <span className="text-[9px] font-bold text-amber-300 bg-amber-950 px-1 py-0.5 rounded border border-amber-700/80 mr-1 whitespace-nowrap">
+                      +RM{(rules.basePrice * (rules.kongImmediateFan ?? 2)).toFixed(2)}
+                    </span>
+                  )}
                   <div className="flex items-center gap-0.5">
                     {meld.tiles.map((t, i) => (
                       <MahjongTile key={i} tile={t} size="sm" />

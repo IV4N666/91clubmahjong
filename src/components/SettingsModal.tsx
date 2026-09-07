@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RuleSettings } from '../types/mahjong';
-import { PRESET_BASE_PRICES } from '../constants/defaultRules';
+import { PRESET_BASE_PRICES, PRESET_FEI_PRICES } from '../constants/defaultRules';
 import {
   Settings,
   X,
@@ -255,7 +255,181 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </div>
 
-          {/* 4. 出冲包赔 & 动物咬花奖励规则 */}
+          {/* 4. 飞牌 (百搭) 结算模式与价格设置 */}
+          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+                <span>⭐</span>
+                {lang === 'zh' ? '飞牌结算模式与价格 (Fei Joker)' : 'Fei Joker Rules & Price'}
+              </span>
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800">
+                {tempRules.feiCalculationMode === 'cash'
+                  ? (lang === 'zh' ? '直计现金 (不算番)' : 'Direct Cash (0 Fan)')
+                  : (lang === 'zh' ? '传统计番 (+1番/张)' : '+1 Fan per Fei')}
+              </span>
+            </div>
+
+            {/* 模式选择按钮 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTempRules({ ...tempRules, feiCalculationMode: 'cash' })}
+                className={`p-2.5 rounded-xl border text-left transition ${
+                  tempRules.feiCalculationMode === 'cash'
+                    ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-0.5 text-amber-300 flex items-center gap-1">
+                  <span>💰</span>
+                  {lang === 'zh' ? '直计现金（不算番） ⭐推荐' : 'Direct Cash (No Fan) ⭐'}
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  {lang === 'zh'
+                    ? '飞牌不计入手牌番数，摸到/手持飞牌直接按设定单价（如RM 0.50或1.00）收取额外现金！'
+                    : 'Fei yields 0 Fan. Directly collects cash per Fei tile.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTempRules({ ...tempRules, feiCalculationMode: 'fan' })}
+                className={`p-2.5 rounded-xl border text-left transition ${
+                  tempRules.feiCalculationMode === 'fan'
+                    ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-0.5 text-emerald-200 flex items-center gap-1">
+                  <span>🀄</span>
+                  {lang === 'zh' ? '传统计番 (+1 番/张)' : '+1 Fan per Fei Tile'}
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  {lang === 'zh'
+                    ? '飞牌按番数计算，手持每张飞牌 +1 番，最后按总番数翻倍结算。'
+                    : 'Each Fei tile adds +1 Fan to the winning hand.'}
+                </p>
+              </button>
+            </div>
+
+            {/* 当选择“直计现金”时，可自定义飞牌单价 */}
+            {tempRules.feiCalculationMode === 'cash' && (
+              <div className="p-3 bg-[#092215] border border-amber-600/40 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-300 text-xs">
+                    {lang === 'zh' ? '每张飞牌现金单价：' : 'Cash Price per Fei Tile:'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-amber-400 font-bold">RM</span>
+                    <input
+                      type="number"
+                      step="0.10"
+                      min="0.05"
+                      value={tempRules.feiCashAmount}
+                      onChange={(e) =>
+                        setTempRules({ ...tempRules, feiCashAmount: parseFloat(e.target.value) || 0.1 })
+                      }
+                      className="w-20 bg-[#0c2e1c] border border-amber-500 rounded-lg px-2 py-1 text-right text-amber-300 font-bold text-sm outline-none focus:ring-1 focus:ring-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* 飞牌单价快捷预设 */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-emerald-400 text-[11px] mr-1">
+                    {lang === 'zh' ? '常用单价：' : 'Presets:'}
+                  </span>
+                  {PRESET_FEI_PRICES.map((price) => (
+                    <button
+                      key={price}
+                      type="button"
+                      onClick={() => setTempRules({ ...tempRules, feiCashAmount: price })}
+                      className={`px-2.5 py-0.5 rounded-lg font-bold text-xs transition ${
+                        tempRules.feiCashAmount === price
+                          ? 'bg-amber-500 text-slate-950 shadow'
+                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                      }`}
+                    >
+                      RM {price.toFixed(2)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 动态计算说明 */}
+                <div className="text-[11px] text-amber-300/90 pt-1 bg-amber-950/30 p-2 rounded-lg border border-amber-900/50">
+                  💡 {lang === 'zh'
+                    ? `实时换算：持 2 张飞牌 = 直接额外收 2 × RM ${tempRules.feiCashAmount.toFixed(2)} = RM ${(2 * tempRules.feiCashAmount).toFixed(2)}（不算入手牌番数）。`
+                    : `Example: 2 Fei tiles = 2 × RM ${tempRules.feiCashAmount.toFixed(2)} = RM ${(2 * tempRules.feiCashAmount).toFixed(2)} cash.`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. 开杠即刻收钱设置 (Immediate Kong Payout) */}
+          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+                <span>⚡</span>
+                {lang === 'zh' ? '开杠即刻收钱设置 (Immediate Kong Payout)' : 'Immediate Kong Payout'}
+              </span>
+              <input
+                type="checkbox"
+                checked={tempRules.enableKongImmediateCash}
+                onChange={(e) => setTempRules({ ...tempRules, enableKongImmediateCash: e.target.checked })}
+                className="w-5 h-5 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+              />
+            </div>
+
+            {tempRules.enableKongImmediateCash && (
+              <div className="space-y-2.5">
+                <div>
+                  <label className="font-bold text-emerald-200 block mb-1 text-xs">
+                    {lang === 'zh' ? '每次开杠收几番的钱？' : 'Fan Payout per Kong:'}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, kongImmediateFan: fan })}
+                        className={`flex-1 py-1.5 rounded-xl font-bold text-xs transition ${
+                          tempRules.kongImmediateFan === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan} {lang === 'zh' ? '番钱' : 'Fan'}
+                        {fan === 2 && ' ⭐'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 动态公式提示 */}
+                <div className="text-[11px] text-emerald-300 bg-[#092215] p-2.5 rounded-xl border border-emerald-800 space-y-1">
+                  <div className="font-bold text-amber-300">
+                    💡 {lang === 'zh' ? '开杠即时收益计算：' : 'Payout Calculation:'}
+                  </div>
+                  <p>
+                    {lang === 'zh'
+                      ? `当前底价 RM ${tempRules.basePrice.toFixed(2)} × 开杠 ${tempRules.kongImmediateFan} 番 = 每次开杠立收 `
+                      : `Base RM ${tempRules.basePrice.toFixed(2)} × ${tempRules.kongImmediateFan} Fan = `}
+                    <span className="font-black text-amber-400 text-sm">
+                      RM {(tempRules.basePrice * tempRules.kongImmediateFan).toFixed(2)}
+                    </span>
+                    {lang === 'zh' ? ' / 组！' : ' per Kong!'}
+                  </p>
+                  <p className="text-[10px] text-emerald-400/80">
+                    {lang === 'zh'
+                      ? '（例如：底价 RM 0.20，开杠即收 2 番 = RM 0.40；底价 RM 0.50，开杠即收 2 番 = RM 1.00）'
+                      : '(e.g. Base RM 0.20 with 2 Fan Kong yields RM 0.40 immediately)'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 6. 出冲包赔 & 动物咬花奖励规则 */}
           <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-2.5">
             <span className="font-bold text-emerald-200 block">
               {lang === 'zh' ? '特殊玩法与即时奖励开关' : 'House Rules & Side Bets'}

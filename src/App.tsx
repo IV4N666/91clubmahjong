@@ -419,6 +419,7 @@ export const App: React.FC = () => {
           onCalculate={handleCalculate}
           isWinReady={isWinReady}
           totalTilesCount={totalRegularTilesCount}
+          rules={rules}
         />
 
         {/* 2. 选牌添加面板 (Add - 位于当前手牌下方) */}
@@ -432,6 +433,7 @@ export const App: React.FC = () => {
           melds={melds}
           discardPool={discardPool}
           lang={lang}
+          rules={rules}
         />
 
         {/* 3. 桌面公共出牌池 (Public Pool - 位于选牌面板下方) */}

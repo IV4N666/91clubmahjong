@@ -405,7 +405,7 @@ export const App: React.FC = () => {
 
       {/* 主工作台 */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* 1. 当前手牌展示与胡牌条件 (TOP: 手中持牌) */}
+        {/* 1. 当前手牌展示与胡牌条件 (Current Holding) */}
         <HandDisplay
           handTiles={handTiles}
           melds={melds}
@@ -421,18 +421,7 @@ export const App: React.FC = () => {
           totalTilesCount={totalRegularTilesCount}
         />
 
-        {/* 2. 桌面公共出牌池 (TOP: 桌面出牌/堂子) */}
-        <DiscardPool
-          discardPool={discardPool}
-          onAddDiscardTile={handleAddDiscardTile}
-          onRemoveDiscardTile={handleRemoveDiscardTile}
-          onClearDiscardPool={handleClearDiscardPool}
-          handTiles={handTiles}
-          melds={melds}
-          lang={lang}
-        />
-
-        {/* 3. 选牌添加面板 (MIDDLE: 选牌添加区域 - 手牌/出牌池) */}
+        {/* 2. 选牌添加面板 (Add - 位于当前手牌下方) */}
         <TilePicker
           onAddTile={handleAddTile}
           onAddMeld={handleAddMeld}
@@ -445,7 +434,18 @@ export const App: React.FC = () => {
           lang={lang}
         />
 
-        {/* 4. 新手打牌与听牌指导建议 (BOTTOM: 推荐打牌/听牌建议) */}
+        {/* 3. 桌面公共出牌池 (Public Pool - 位于选牌面板下方) */}
+        <DiscardPool
+          discardPool={discardPool}
+          onAddDiscardTile={handleAddDiscardTile}
+          onRemoveDiscardTile={handleRemoveDiscardTile}
+          onClearDiscardPool={handleClearDiscardPool}
+          handTiles={handTiles}
+          melds={melds}
+          lang={lang}
+        />
+
+        {/* 4. 新手打牌与听牌指导建议 (Recommendation - 位于最底部) */}
         <BeginnerHelper
           analysis={shantenAnalysis}
           rules={rules}

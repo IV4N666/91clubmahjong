@@ -295,6 +295,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </label>
           </div>
+
+          {/* 5. 隐私与数据安全说明 */}
+          <div className="bg-[#0b2919] border border-emerald-500/30 rounded-2xl p-3.5 space-y-1.5 text-[11px]">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-300">
+              <span className="text-emerald-400">🛡️</span>
+              <span>{lang === 'zh' ? '隐私与资金安全保障承诺' : 'Privacy & Security Guarantee'}</span>
+            </div>
+            <p className="text-emerald-400/90 leading-relaxed">
+              {lang === 'zh'
+                ? '• 本应用为纯前端离线架构，所有玩家姓名、赌注底价、对局战绩与转账记录均严格保存在您的手机本地浏览器中（LocalStorage）。'
+                : '• All player names, stakes, game records, and transfer amounts are stored strictly in your local browser.'}
+            </p>
+            <p className="text-emerald-400/90 leading-relaxed">
+              {lang === 'zh'
+                ? '• 系统无任何后端数据库记录，不收集任何个人隐私，绝不向任何第三方泄露或转存您的打牌资金账单。'
+                : '• No remote database, no tracking, zero telemetry. Your data stays 100% private.'}
+            </p>
+            <p className="text-emerald-400/90 leading-relaxed">
+              {lang === 'zh'
+                ? '• 拍照识牌图片仅在手机内存中实时处理，绝不回传服务器保存。'
+                : '• Camera photos are processed in-memory and never stored on any server.'}
+            </p>
+          </div>
         </div>
 
         {/* Footer */}

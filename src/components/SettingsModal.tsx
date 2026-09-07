@@ -178,7 +178,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {lang === 'zh' ? '算钱倍数算法模式' : 'Payout Multiplier Scheme'}
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div
+                onClick={() => setTempRules({ ...tempRules, multiplierType: 'linear' })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  tempRules.multiplierType === 'linear'
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300 flex items-center gap-1">
+                  <span>🎯</span>
+                  {lang === 'zh' ? '几番几底 (1番=1底) ⭐推荐默认' : 'Linear (1 Fan = 1 Base) ⭐'}
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  {lang === 'zh' ? '几番就几底（如7番=7×底价），超过10番算爆番拿20底！' : 'Fan × Base (e.g. 7F = 7×Base), >10F is Bao Fan (20×Base).'}
+                </p>
+              </div>
+
               <div
                 onClick={() => setTempRules({ ...tempRules, multiplierType: 'exponential' })}
                 className={`p-2.5 rounded-xl border cursor-pointer transition ${
@@ -187,10 +204,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
                 }`}
               >
-                <div className="font-bold text-xs mb-1">
-                  ⭐ {lang === 'zh' ? '经典番数翻倍' : 'Exponential 2x'}
+                <div className="font-bold text-xs mb-1 flex items-center gap-1">
+                  <span>📈</span>
+                  {lang === 'zh' ? '经典番数翻倍 (2x)' : 'Exponential 2x'}
                 </div>
-                <p className="text-[10px] opacity-80">
+                <p className="text-[10px] opacity-80 leading-relaxed">
                   {lang === 'zh' ? '5番1倍，6番2倍，7番4倍，8番8倍...' : 'Doubles with each extra fan.'}
                 </p>
               </div>
@@ -203,10 +221,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
                 }`}
               >
-                <div className="font-bold text-xs mb-1">
-                  📈 {lang === 'zh' ? '大马阶梯半倍法' : 'Malaysian Step'}
+                <div className="font-bold text-xs mb-1 flex items-center gap-1">
+                  <span>📊</span>
+                  {lang === 'zh' ? '大马阶梯半倍法' : 'Malaysian Step'}
                 </div>
-                <p className="text-[10px] opacity-80">
+                <p className="text-[10px] opacity-80 leading-relaxed">
                   {lang === 'zh' ? '5番1底，6番2底，7番3底，8番4底...' : 'Gradual increment per fan.'}
                 </p>
               </div>
@@ -219,14 +238,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
                 }`}
               >
-                <div className="font-bold text-xs mb-1">
-                  📝 {lang === 'zh' ? '自定义金额表' : 'Custom Price Table'}
+                <div className="font-bold text-xs mb-1 flex items-center gap-1">
+                  <span>📝</span>
+                  {lang === 'zh' ? '自定义金额表' : 'Custom Price Table'}
                 </div>
-                <p className="text-[10px] opacity-80">
+                <p className="text-[10px] opacity-80 leading-relaxed">
                   {lang === 'zh' ? '手动指定每一级番数收多少钱。' : 'Manually set RM for each fan.'}
                 </p>
               </div>
             </div>
+
+            {/* 如果选择了几番几底模式，展示规则细节与爆番设置 */}
+            {tempRules.multiplierType === 'linear' && (
+              <div className="p-3 bg-[#092215] border border-amber-600/40 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-300">
+                    {lang === 'zh' ? '几番几底规则说明：' : 'Linear Rules:'}
+                  </span>
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950 px-2 py-0.5 rounded border border-amber-800">
+                    {lang === 'zh' ? '1番 = 1底' : '1 Fan = 1 Base'}
+                  </span>
+                </div>
+                <p className="text-emerald-300 text-[11px] leading-relaxed">
+                  {lang === 'zh'
+                    ? `• 10 番以内：几番就拿几底（例如 5番拿 5底 RM ${(tempRules.basePrice * 5).toFixed(2)}，7番拿 7底 RM ${(tempRules.basePrice * 7).toFixed(2)}，10番拿 10底 RM ${(tempRules.basePrice * 10).toFixed(2)}）。`
+                    : `• Up to 10 Fan: Score = Fan × Base Price (e.g. 7 Fan = 7 × Base).`}
+                </p>
+                <div className="pt-2 border-t border-emerald-800/60 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-200 text-[11px] font-bold">
+                      {lang === 'zh' ? '💥 超过 10 番 (爆番) 获得：' : '💥 Over 10 Fan (Bao Fan):'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[15, 20, 30].map((multiplier) => (
+                        <button
+                          key={multiplier}
+                          type="button"
+                          onClick={() => setTempRules({ ...tempRules, baoFanMultiplier: multiplier })}
+                          className={`px-2 py-0.5 rounded-lg text-xs font-bold transition ${
+                            (tempRules.baoFanMultiplier ?? 20) === multiplier
+                              ? 'bg-amber-500 text-slate-950 shadow'
+                              : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                          }`}
+                        >
+                          {multiplier} {lang === 'zh' ? '底' : 'Base'}
+                          {multiplier === 20 && ' ⭐'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-amber-400 font-bold text-xs">
+                    = RM {(tempRules.basePrice * (tempRules.baoFanMultiplier ?? 20)).toFixed(2)} / 家
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* 如果选择了自定义价格表，展示可编辑列表 */}
             {tempRules.multiplierType === 'custom' && (
@@ -429,107 +495,573 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </div>
 
-          {/* 6. 核心大牌与牌型番数自定义 (混一色、清一色、门清) */}
-          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-3">
-            <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
-              <span>🎨</span>
-              {lang === 'zh' ? '核心牌型番数自由定制' : 'Pattern Fan Customization'}
-            </span>
+          {/* 6. 全牌型番数自由定制 (All Sets Pattern & Action Fan Customization) */}
+          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-4">
+            <div>
+              <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+                <span>🎨</span>
+                {lang === 'zh' ? '全牌型与特色番数定制 (全部Set自由调番)' : 'All Pattern & Action Fan Settings'}
+              </span>
+              <p className="text-[11px] text-emerald-400/80 mt-0.5">
+                {lang === 'zh' ? '根据您家常打的规矩，自由定义所有牌型、动作与神兽组合番数：' : 'Customize fan values for each pattern according to your table rules:'}
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {/* 混一色 (半色) */}
-              <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-200 text-xs">
-                    {lang === 'zh' ? '混一色 (半色)' : 'Half Flush'}
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                    {tempRules.halfFlushFan ?? 2} 番
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4].map((fan) => (
-                    <button
-                      key={fan}
-                      type="button"
-                      onClick={() => setTempRules({ ...tempRules, halfFlushFan: fan })}
-                      className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
-                        (tempRules.halfFlushFan ?? 2) === fan
-                          ? 'bg-amber-500 text-slate-950 shadow'
-                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
-                      }`}
-                    >
-                      {fan}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[10px] text-emerald-400/80 block">
-                  {lang === 'zh' ? '筒子搭配风牌或字牌（常用 2 番）。' : 'Dots + Honors (std: 2F).'}
-                </span>
+            {/* 子分类 A: 经典胡牌牌型 (Hand Patterns) */}
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-emerald-300 flex items-center gap-1 border-b border-emerald-800/50 pb-1">
+                <span>🀄</span>
+                {lang === 'zh' ? '经典大牌与牌型 (Hand Patterns)' : 'Major Hand Patterns'}
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {/* 混一色 (半色) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '混一色 (半色)' : 'Half Flush'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.halfFlushFan ?? 2} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, halfFlushFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.halfFlushFan ?? 2) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '筒子搭配风字牌（常规 2 番）。' : 'Dots + Honors (std: 2F).'}
+                  </span>
+                </div>
 
-              {/* 清一色 (全色) */}
-              <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-200 text-xs">
-                    {lang === 'zh' ? '清一色 (全色)' : 'Full Flush'}
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                    {tempRules.fullFlushFan ?? 4} 番
+                {/* 清一色 (全色) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '清一色 (全色)' : 'Full Flush'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.fullFlushFan ?? 4} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[3, 4, 5, 8].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, fullFlushFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.fullFlushFan ?? 4) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '纯筒子无字牌（常规 4 或 5 番）。' : 'Pure dots only (std: 4F).'}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {[3, 4, 5, 8].map((fan) => (
-                    <button
-                      key={fan}
-                      type="button"
-                      onClick={() => setTempRules({ ...tempRules, fullFlushFan: fan })}
-                      className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
-                        (tempRules.fullFlushFan ?? 4) === fan
-                          ? 'bg-amber-500 text-slate-950 shadow'
-                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
-                      }`}
-                    >
-                      {fan}
-                    </button>
-                  ))}
+
+                {/* 碰碰胡 (对对胡) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '碰碰胡 (对对胡)' : 'All Pongs'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.allPongsFan ?? 2} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, allPongsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.allPongsFan ?? 2) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '全由刻子/杠子组成（常规 2 番）。' : 'Triplets only (std: 2F).'}
+                  </span>
                 </div>
-                <span className="text-[10px] text-emerald-400/80 block">
-                  {lang === 'zh' ? '纯筒子无任何字牌（常用 4 或 5 番）。' : 'Pure dots only (std: 4F).'}
-                </span>
+
+                {/* 一条龙 (纯筒龙) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '一条龙 (1-9筒)' : 'Pure Straight'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.pureStraightFan ?? 2} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, pureStraightFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.pureStraightFan ?? 2) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '持一至九筒顺龙（常规 2 番）。' : '1 to 9 dots straight (std: 2F).'}
+                  </span>
+                </div>
+
+                {/* 小三元 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '小三元' : 'Small 3 Dragons'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.smallThreeDragonsFan ?? 3} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[2, 3, 4, 5].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, smallThreeDragonsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.smallThreeDragonsFan ?? 3) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '两组中发白刻子+一组对子（常规 3 番）。' : '2 dragon pongs + 1 pair.'}
+                  </span>
+                </div>
+
+                {/* 大三元 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '大三元' : 'Big 3 Dragons'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.bigThreeDragonsFan ?? 5} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[3, 5, 8, 10].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, bigThreeDragonsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.bigThreeDragonsFan ?? 5) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '中、发、白三组刻子全齐（常规 5 番）。' : 'Triplets of all 3 dragons.'}
+                  </span>
+                </div>
+
+                {/* 七对子 (小七对) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '七对子 (小七对)' : 'Seven Pairs'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.sevenPairsFan ?? 5} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[3, 5, 8, 10].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, sevenPairsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.sevenPairsFan ?? 5) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '手牌由 7 个对子组成（常用 5 番）。' : '7 pairs concealed hand.'}
+                  </span>
+                </div>
+
+                {/* 十三幺 (国士无双) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '十三幺 (国士无双)' : '13 Orphans'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.thirteenOrphansFan ?? 10} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, thirteenOrphansFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.thirteenOrphansFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '1筒9筒东南西北中发白（常规满胡 10/16番）。' : '1, 9, winds & dragons (Limit).'}
+                  </span>
+                </div>
+
+                {/* 门清 (未吃碰) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '门清 (未副露)' : 'Concealed Hand'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {(tempRules.menqingFan ?? 1) === 0
+                        ? (lang === 'zh' ? '不算' : '0')
+                        : `${tempRules.menqingFan ?? 1} 番`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, menqingFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.menqingFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan === 0 ? (lang === 'zh' ? '不算' : '0') : fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '手牌无露面副露（自摸时再加+1番）。' : 'No exposed melds.'}
+                  </span>
+                </div>
               </div>
+            </div>
 
-              {/* 门清 */}
-              <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-200 text-xs">
-                    {lang === 'zh' ? '门清 (未吃碰)' : 'Concealed'}
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                    {(tempRules.menqingFan ?? 1) === 0
-                      ? (lang === 'zh' ? '不算' : '0')
-                      : `${tempRules.menqingFan ?? 1} 番`}
+            {/* 子分类 B: 动作与赢牌情境加番 (Actions & Win Circumstances) */}
+            <div className="space-y-2 pt-1">
+              <div className="text-xs font-bold text-amber-300 flex items-center gap-1 border-b border-emerald-800/50 pb-1">
+                <span>⚡</span>
+                {lang === 'zh' ? '动作与特殊胡牌加番 (Actions & Events)' : 'Actions & Situational Bonuses'}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                {/* 自摸 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '自摸额外加番' : 'Self-Drawn (Zimo)'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.zimoFan ?? 1} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, zimoFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.zimoFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan === 0 ? (lang === 'zh' ? '0番' : '0') : `+${fan}番`}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '自己摸起胡牌加番（通常 +1 番）。' : 'Self-drawn tile (+1F).'}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {[0, 1, 2].map((fan) => (
-                    <button
-                      key={fan}
-                      type="button"
-                      onClick={() => setTempRules({ ...tempRules, menqingFan: fan })}
-                      className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
-                        (tempRules.menqingFan ?? 1) === fan
-                          ? 'bg-amber-500 text-slate-950 shadow'
-                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
-                      }`}
-                    >
-                      {fan === 0 ? (lang === 'zh' ? '不算' : '0') : fan}
-                    </button>
-                  ))}
+
+                {/* 杠上开花 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '杠上开花' : 'Kong Bloom'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      +{tempRules.kongBloomFan ?? 1} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, kongBloomFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.kongBloomFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        +{fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '开杠补牌时摸到胡牌。' : 'Win on replacement tile.'}
+                  </span>
                 </div>
-                <span className="text-[10px] text-emerald-400/80 block">
-                  {lang === 'zh' ? '全手牌未吃碰露面（自摸额外再+1番）。' : 'No exposed melds.'}
-                </span>
+
+                {/* 抢杠 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '抢杠' : 'Robbing Kong'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      +{tempRules.robbingKongFan ?? 1} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, robbingKongFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.robbingKongFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        +{fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '胡别家补杠的那张牌。' : 'Rob opponent kong tile.'}
+                  </span>
+                </div>
+
+                {/* 海底捞月 / 捞沙 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '海底捞月/捞沙' : 'Last Tile Win'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      +{tempRules.lastTileFan ?? 1} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, lastTileFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.lastTileFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        +{fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '最后一张摸牌或别家最后一张出冲。' : 'Win on final wall tile.'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 子分类 C: 花牌、神兽与飞牌奖励套组 (Flowers, Animals & Fei Combos) */}
+            <div className="space-y-2 pt-1">
+              <div className="text-xs font-bold text-emerald-300 flex items-center gap-1 border-b border-emerald-800/50 pb-1">
+                <span>🌺</span>
+                {lang === 'zh' ? '花牌、神兽满贯与飞牌大奖套组 (Combos & Full Sets)' : 'Flowers & Special Sets'}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                {/* 一套花 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '一套花 (四季/四君子)' : 'Full Flower Set'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      +{tempRules.flowerSetFan ?? 2} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, flowerSetFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.flowerSetFan ?? 2) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        +{fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '春夏秋冬或梅兰竹菊4张成套额外加番。' : 'Complete 4 flowers set.'}
+                  </span>
+                </div>
+
+                {/* 齐抓四兽 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '齐抓四兽 (大满贯)' : 'All 4 Animals'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.allAnimalsFan ?? 5} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[3, 5, 8, 10].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, allAnimalsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.allAnimalsFan ?? 5) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '猫、鼠、鸡、蜈蚣4只全部到手。' : 'All 4 animals collected.'}
+                  </span>
+                </div>
+
+                {/* 清飞 / 无飞奖励 */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '无飞 (清飞胡)' : 'No Fei (Clean)'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {(tempRules.noFeiBonusFan ?? 1) === 0
+                        ? (lang === 'zh' ? '0番' : '0')
+                        : `+${tempRules.noFeiBonusFan ?? 1} 番`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, noFeiBonusFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.noFeiBonusFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan === 0 ? (lang === 'zh' ? '0番' : '0') : `+${fan}`}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '手牌无任何飞牌百搭胡牌奖励。' : 'Win without any Fei jokers.'}
+                  </span>
+                </div>
+
+                {/* 满天飞 (4飞直接胡) */}
+                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-200 text-xs">
+                      {lang === 'zh' ? '满天飞 (4飞直接胡)' : 'All 4 Fei Win'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      {tempRules.fourFeiWinFan ?? 10} 番
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, fourFeiWinFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.fourFeiWinFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '抓到4张飞牌满天飞大满贯包赢。' : 'Instant win with all 4 Fei.'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

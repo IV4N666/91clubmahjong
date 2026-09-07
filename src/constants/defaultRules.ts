@@ -4,7 +4,9 @@ export const DEFAULT_RULES: RuleSettings = {
   minFan: 5, // 默认 5 番起胡 (马来西亚三人麻将标准)
   maxFan: 10, // 默认 10 番封顶 (满胡)
   basePrice: 0.50, // 默认底价 RM 0.50 (可切换 RM 0.20, RM 1.00, RM 2.00 等)
-  multiplierType: 'exponential', // 'exponential' | 'tier_classic' | 'custom'
+  multiplierType: 'linear', // 默认 几番几底 (1番=1底，7番=7×底价，超过10番爆番收20×底价)
+  baoFanThreshold: 10, // 超过 10 番算爆番
+  baoFanMultiplier: 20, // 爆番得 20 倍底价 (20底)
   customTierTable: [
     { fan: 5, amount: 1.00 },
     { fan: 6, amount: 2.00 },
@@ -32,7 +34,17 @@ export const DEFAULT_RULES: RuleSettings = {
   kongImmediateFan: 2, // 默认开杠收 2 番的钱 (例如底价 0.20 即收 0.40)
   halfFlushFan: 2, // 混一色 (半色) 默认 2 番
   fullFlushFan: 4, // 清一色 (全色) 默认 4 番
+  allPongsFan: 2, // 碰碰胡 (对对胡) 默认 2 番
+  pureStraightFan: 2, // 一条龙 (1-9筒) 默认 2 番
+  bigThreeDragonsFan: 5, // 大三元 默认 5 番
+  smallThreeDragonsFan: 3, // 小三元 默认 3 番
+  sevenPairsFan: 5, // 七对子 默认 5 番
+  thirteenOrphansFan: 10, // 十三幺 默认 10 番 (满胡)
   menqingFan: 1, // 门清 默认 1 番
+  zimoFan: 1, // 自摸 额外默认 1 番
+  kongBloomFan: 1, // 杠上开花 默认 1 番
+  robbingKongFan: 1, // 抢杠 默认 1 番
+  lastTileFan: 1, // 海底捞月/捞沙 默认 1 番
   animalBiteFan: 1, // 动物咬到 默认 1 番
 };
 

@@ -51,7 +51,9 @@ export interface RuleSettings {
   minFan: number; // 默认 5 番起胡
   maxFan: number; // 默认 10 番封顶 (0 表示无上限)
   basePrice: number; // 底价 RM，如 0.50 或 1.00
-  multiplierType: 'exponential' | 'tier_classic' | 'custom';
+  multiplierType: 'linear' | 'exponential' | 'tier_classic' | 'custom';
+  baoFanThreshold?: number; // 爆番门槛番数 (默认 10 番，超过 10 番算爆番)
+  baoFanMultiplier?: number; // 爆番倍数 (默认 20 倍底价)
   customTierTable: { fan: number; amount: number }[];
   shooterPaysAll: boolean; // 出冲是否一人包全部
   enableAnimalBiteBonus: boolean; // 猫吃老鼠/鸡吃蜈蚣即时现金奖励
@@ -66,10 +68,20 @@ export interface RuleSettings {
   // 开杠即时收钱：开杠立刻收取 N 番价值的现金 (例如底价 0.20 收 2 番 = 0.40)
   enableKongImmediateCash: boolean;
   kongImmediateFan: number; // 开杠收取的番数，默认 2 番
-  // 自定义核心牌型番数 (混一色、清一色、门清、动物咬到)
+  // 自定义所有牌型与动作番数
   halfFlushFan: number; // 混一色 (半色) 番数，默认 2 番
   fullFlushFan: number; // 清一色 (全色) 番数，默认 4 番
-  menqingFan: number; // 门清番数，默认 1 番 (0 表示不算门清)
+  allPongsFan: number; // 碰碰胡 (对对胡) 番数，默认 2 番
+  pureStraightFan: number; // 一条龙 (1-9筒) 番数，默认 2 番
+  bigThreeDragonsFan: number; // 大三元 番数，默认 5 番
+  smallThreeDragonsFan: number; // 小三元 番数，默认 3 番
+  sevenPairsFan: number; // 七对子 番数，默认 5 番
+  thirteenOrphansFan: number; // 十三幺 番数，默认 10 番 (满胡)
+  menqingFan: number; // 门清 番数，默认 1 番 (0 表示不算门清)
+  zimoFan: number; // 自摸 额外番数，默认 1 番
+  kongBloomFan: number; // 杠上开花 番数，默认 1 番
+  robbingKongFan: number; // 抢杠 番数，默认 1 番
+  lastTileFan: number; // 海底捞月/捞沙 番数，默认 1 番
   animalBiteFan: number; // 动物咬到番数，默认 1 番
 }
 

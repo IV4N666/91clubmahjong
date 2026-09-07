@@ -8,7 +8,12 @@ import {
 } from '../types/mahjong';
 import { isAnimalBite } from '../constants/tiles';
 import { getClassicTierMultiplier } from '../constants/defaultRules';
-import { checkIsWin } from './mahjongEngine';
+import {
+  checkIsWin,
+  checkThirteenOrphans,
+  checkSevenPairs,
+  checkIsAllPongs,
+} from './mahjongEngine';
 
 export function calculateMahjongScore(
   handTiles: MahjongTileData[], // 手牌 (立牌 + 飞牌)
@@ -113,13 +118,14 @@ export function calculateMahjongScore(
   // 3. 基本赢牌状况番
   // ----------------------------------------------------
   if (winningConditions.isZimo) {
+    const zimoFan = rules.zimoFan ?? 1;
     fanItems.push({
       id: 'zimo',
       nameZh: '自摸',
       nameEn: 'Self-Drawn (Zimo)',
-      fan: 1,
-      descriptionZh: '自己摸到胡牌，额外加 1 番，且两家皆需付钱！',
-      descriptionEn: 'Self-drawn winning tile (+1 Fan).',
+      fan: zimoFan,
+      descriptionZh: `自己摸到胡牌，额外加 ${zimoFan} 番，且两家皆需付钱！`,
+      descriptionEn: `Self-drawn winning tile (+${zimoFan} Fan).`,
       category: 'base',
     });
   }
@@ -143,49 +149,53 @@ export function calculateMahjongScore(
   }
 
   if (winningConditions.isKongBloom) {
+    const kongBloomFan = rules.kongBloomFan ?? 1;
     fanItems.push({
       id: 'kong_bloom',
       nameZh: '杠上开花',
       nameEn: 'Kong Bloom',
-      fan: 1,
-      descriptionZh: '开杠补牌时摸到胡牌 (+1 番)。',
-      descriptionEn: 'Winning on replacement tile after a Kong.',
+      fan: kongBloomFan,
+      descriptionZh: `开杠补牌时摸到胡牌 (+${kongBloomFan} 番)。`,
+      descriptionEn: `Winning on replacement tile after a Kong (+${kongBloomFan} Fan).`,
       category: 'base',
     });
   }
 
   if (winningConditions.isRobbingKong) {
+    const robbingKongFan = rules.robbingKongFan ?? 1;
     fanItems.push({
       id: 'robbing_kong',
       nameZh: '抢杠',
       nameEn: 'Robbing the Kong',
-      fan: 1,
-      descriptionZh: '别家加杠时正好胡该张牌 (+1 番)。',
-      descriptionEn: 'Winning by robbing an opponent’s Kong.',
+      fan: robbingKongFan,
+      descriptionZh: `别家加杠时正好胡该张牌 (+${robbingKongFan} 番)。`,
+      descriptionEn: `Winning by robbing an opponent’s Kong (+${robbingKongFan} Fan).`,
       category: 'base',
     });
   }
 
   if (winningConditions.isLastTileDraw) {
+    const lastTileFan = rules.lastTileFan ?? 1;
     fanItems.push({
       id: 'last_tile_draw',
       nameZh: '海底捞月',
       nameEn: 'Last Tile Win (Draw)',
-      fan: 1,
-      descriptionZh: '摸到底池最后一张牌胡牌 (+1 番)。',
-      descriptionEn: 'Winning on the very last tile of the wall.',
+      fan: lastTileFan,
+      descriptionZh: `摸到底池最后一张牌胡牌 (+${lastTileFan} 番)。`,
+      descriptionEn: `Winning on the very last tile of the wall (+${lastTileFan} Fan).`,
       category: 'base',
     });
   }
 
   if (winningConditions.isLastTileDiscard) {
+    const lastTileFan = rules.lastTileFan ?? 1;
     fanItems.push({
       id: 'last_tile_discard',
       nameZh: '海底捞沙',
       nameEn: 'Last Tile Win (Discard)',
-      fan: 1,
-      descriptionZh: '别家打出底池最后一张牌时胡牌 (+1 番)。',
-      descriptionEn: 'Winning on the very last discarded tile.',
+      fan: lastTileFan,
+      descriptionZh: `别家打出底池最后一张牌时胡牌 (+${lastTileFan} 番)。`,
+      descriptionEn: `Winning on the very last discarded tile (+${lastTileFan} Fan).`,
       category: 'base',
     });
   }
@@ -291,8 +301,8 @@ export function calculateMahjongScore(
       nameZh: '齐抓四兽 (大满贯)',
       nameEn: 'All 4 Animals Complete',
       fan: rules.allAnimalsFan,
-      descriptionZh: '猫、老鼠、公鸡、蜈蚣四神兽全部聚齐，奖励大满贯 5 番！',
-      descriptionEn: 'All four animals collected (+5 Fan).',
+      descriptionZh: `猫、老鼠、公鸡、蜈蚣四神兽全部聚齐，奖励大满贯 ${rules.allAnimalsFan} 番！`,
+      descriptionEn: `All four animals collected (+${rules.allAnimalsFan} Fan).`,
       category: 'flower',
     });
   }
@@ -320,8 +330,8 @@ export function calculateMahjongScore(
       nameZh: '一套花 (四季：春夏秋冬)',
       nameEn: 'Full Season Flowers (1-4)',
       fan: rules.flowerSetFan,
-      descriptionZh: '集齐春、夏、秋、冬完整一套花 (+2 番)！',
-      descriptionEn: 'Complete set of 4 seasons (+2 Fan).',
+      descriptionZh: `集齐春、夏、秋、冬完整一套花 (+${rules.flowerSetFan} 番)！`,
+      descriptionEn: `Complete set of 4 seasons (+${rules.flowerSetFan} Fan).`,
       category: 'flower',
     });
   }
@@ -332,8 +342,8 @@ export function calculateMahjongScore(
       nameZh: '一套花 (四君子：梅兰竹菊)',
       nameEn: 'Full Plant Flowers (1-4)',
       fan: rules.flowerSetFan,
-      descriptionZh: '集齐梅、兰、竹、菊完整一套花 (+2 番)！',
-      descriptionEn: 'Complete set of 4 plants (+2 Fan).',
+      descriptionZh: `集齐梅、兰、竹、菊完整一套花 (+${rules.flowerSetFan} 番)！`,
+      descriptionEn: `Complete set of 4 plants (+${rules.flowerSetFan} Fan).`,
       category: 'flower',
     });
   }
@@ -378,16 +388,53 @@ export function calculateMahjongScore(
     });
   }
 
+  // 十三幺 (Thirteen Orphans - 门清特殊牌型)
+  const nonFeiHandTiles = handTiles.filter(t => t.category !== 'fei');
+  if (melds.length === 0 && checkThirteenOrphans(nonFeiHandTiles, feiInHandCount)) {
+    const thirteenOrphansFan = rules.thirteenOrphansFan ?? 10;
+    fanItems.push({
+      id: 'thirteen_orphans',
+      nameZh: '十三幺 (国士无双)',
+      nameEn: 'Thirteen Orphans',
+      fan: thirteenOrphansFan,
+      descriptionZh: `1筒、9筒、东南西北、中发白聚齐，绝世十三幺 (+${thirteenOrphansFan} 番)！`,
+      descriptionEn: `Thirteen Orphans special hand pattern (+${thirteenOrphansFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '十三幺';
+    handPatternEn = 'Thirteen Orphans';
+  }
+
+  // 七对子 (Seven Pairs - 门清特殊牌型)
+  if (melds.length === 0 && checkSevenPairs(nonFeiHandTiles, feiInHandCount)) {
+    const sevenPairsFan = rules.sevenPairsFan ?? 5;
+    fanItems.push({
+      id: 'seven_pairs',
+      nameZh: '七对子 (小七对)',
+      nameEn: 'Seven Pairs',
+      fan: sevenPairsFan,
+      descriptionZh: `门清手牌由 7 个对子组成 (+${sevenPairsFan} 番)！`,
+      descriptionEn: `Hand consisting of seven pairs (+${sevenPairsFan} Fan).`,
+      category: 'special',
+    });
+    if (handPatternZh === '普通胡') {
+      handPatternZh = '七对子';
+      handPatternEn = 'Seven Pairs';
+    }
+  }
+
   // 碰碰胡 (All Pongs - 全部由刻子/杠子组成，无顺子)
   const hasChow = melds.some(m => m.type === 'chow');
-  if (!hasChow && melds.length >= 2) {
+  const isAllPongs = checkIsAllPongs(allHandTiles, melds) || (!hasChow && melds.length >= 2);
+  const allPongsFan = rules.allPongsFan ?? 2;
+  if (isAllPongs) {
     fanItems.push({
       id: 'all_pongs',
       nameZh: '碰碰胡 (对对胡)',
       nameEn: 'All Pongs (Triplets)',
-      fan: 2,
-      descriptionZh: '整手牌全由碰牌刻子与杠子组成 (+2 番)！',
-      descriptionEn: 'Hand composed entirely of triplets/quads (+2 Fan).',
+      fan: allPongsFan,
+      descriptionZh: `整手牌全由碰牌刻子与杠子组成 (+${allPongsFan} 番)！`,
+      descriptionEn: `Hand composed entirely of triplets/quads (+${allPongsFan} Fan).`,
       category: 'suit',
     });
     if (handPatternZh === '普通胡') {
@@ -404,14 +451,17 @@ export function calculateMahjongScore(
   const dragonTriplets = [zhongCount >= 3, faCount >= 3, baiCount >= 3].filter(Boolean).length;
   const dragonPairs = [zhongCount >= 2, faCount >= 2, baiCount >= 2].filter(Boolean).length;
 
+  const bigThreeDragonsFan = rules.bigThreeDragonsFan ?? 5;
+  const smallThreeDragonsFan = rules.smallThreeDragonsFan ?? 3;
+
   if (dragonTriplets === 3) {
     fanItems.push({
       id: 'big_three_dragons',
       nameZh: '大三元',
       nameEn: 'Big Three Dragons',
-      fan: 5,
-      descriptionZh: '中、发、白三组刻子全齐，大显神通！(+5 番)',
-      descriptionEn: 'Triplets of all three dragons (+5 Fan).',
+      fan: bigThreeDragonsFan,
+      descriptionZh: `中、发、白三组刻子全齐，大显神通！(+${bigThreeDragonsFan} 番)`,
+      descriptionEn: `Triplets of all three dragons (+${bigThreeDragonsFan} Fan).`,
       category: 'special',
     });
     handPatternZh = '大三元';
@@ -420,9 +470,9 @@ export function calculateMahjongScore(
       id: 'little_three_dragons',
       nameZh: '小三元',
       nameEn: 'Little Three Dragons',
-      fan: 3,
-      descriptionZh: '两组中发白刻子加一组中发白对子雀头 (+3 番)。',
-      descriptionEn: 'Two dragon triplets and one dragon pair (+3 Fan).',
+      fan: smallThreeDragonsFan,
+      descriptionZh: `两组中发白刻子加一组中发白对子雀头 (+${smallThreeDragonsFan} 番)。`,
+      descriptionEn: `Two dragon triplets and one dragon pair (+${smallThreeDragonsFan} Fan).`,
       category: 'special',
     });
   } else {
@@ -469,6 +519,7 @@ export function calculateMahjongScore(
   }
 
   // 一条龙 (1-9 筒手牌全齐)
+  const pureStraightFan = rules.pureStraightFan ?? 2;
   const has1to9Tong = [1, 2, 3, 4, 5, 6, 7, 8, 9].every(v =>
     allGameTiles.some(t => t.category === 'tong' && t.value === v)
   );
@@ -477,9 +528,9 @@ export function calculateMahjongScore(
       id: 'one_dragon',
       nameZh: '一条龙 (纯筒龙)',
       nameEn: 'Pure Dragon (1-9 Dots)',
-      fan: 2,
-      descriptionZh: '手中持有一至九筒完整连贯龙型 (+2 番)！',
-      descriptionEn: 'Complete 1-9 dots sequence (+2 Fan).',
+      fan: pureStraightFan,
+      descriptionZh: `手中持有一至九筒完整连贯龙型 (+${pureStraightFan} 番)！`,
+      descriptionEn: `Complete 1-9 dots sequence (+${pureStraightFan} Fan).`,
       category: 'special',
     });
   }
@@ -505,8 +556,20 @@ export function calculateMahjongScore(
   // ----------------------------------------------------
   const basePrice = rules.basePrice;
   let scorePerUnit = 0;
+  let isBaoFan = false;
 
-  if (rules.multiplierType === 'exponential') {
+  if (rules.multiplierType === 'linear') {
+    // 几番几底模式：1番 = 1倍底价 (如 7番 = 7 * base)；超过 10 番为爆番，得 20 * base
+    const baoFanThreshold = rules.baoFanThreshold ?? 10;
+    const baoFanMultiplier = rules.baoFanMultiplier ?? 20;
+
+    if (totalFan > baoFanThreshold) {
+      isBaoFan = true;
+      scorePerUnit = Number((basePrice * baoFanMultiplier).toFixed(2));
+    } else {
+      scorePerUnit = Number((basePrice * effectiveFan).toFixed(2));
+    }
+  } else if (rules.multiplierType === 'exponential') {
     // 经典翻倍：每多一番翻一倍 (例如5番=1倍, 6番=2倍, 7番=4倍, 8番=8倍...)
     const fanDiff = Math.max(0, effectiveFan - rules.minFan);
     const multiplier = Math.pow(2, fanDiff);
@@ -571,10 +634,13 @@ export function calculateMahjongScore(
   const bonusNote = bonusItems.length > 0 ? `（含额外即时现金：${bonusItems.join('、')}）` : '';
 
   let ruleSummary = '';
+  const fanLabel = isBaoFan
+    ? `${totalFan}番 (爆番${rules.baoFanMultiplier ?? 20}底)`
+    : `${effectiveFan}番`;
   if (winningConditions.isZimo) {
-    ruleSummary = `自摸 ${effectiveFan} 番（底 RM ${basePrice.toFixed(2)}）：两家各付 RM ${eachPayIfZimo.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
+    ruleSummary = `自摸 ${fanLabel}（底 RM ${basePrice.toFixed(2)}）：两家各付 RM ${eachPayIfZimo.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
   } else {
-    ruleSummary = `出冲 ${effectiveFan} 番：放炮者${rules.shooterPaysAll ? '一人包赔' : '出冲'}付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
+    ruleSummary = `出冲 ${fanLabel}：放炮者${rules.shooterPaysAll ? '一人包赔' : '出冲'}付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
   }
 
   return {

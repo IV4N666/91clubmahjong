@@ -236,7 +236,7 @@ export function checkIsWin(handTiles: MahjongTileData[], melds: Meld[]): boolean
 /**
  * 检查十三幺 (Thirteen Orphans)
  */
-function checkThirteenOrphans(regularTiles: MahjongTileData[], feiCount: number): boolean {
+export function checkThirteenOrphans(regularTiles: MahjongTileData[], feiCount: number): boolean {
   if (regularTiles.length + feiCount !== 14) return false;
 
   // 十三幺的目标牌: 1筒, 9筒, 东, 南, 西, 北, 中, 发, 白 (共9种，每种至少1张，其中一种有2张)
@@ -274,7 +274,7 @@ function checkThirteenOrphans(regularTiles: MahjongTileData[], feiCount: number)
 /**
  * 检查七对子 (Seven Pairs)
  */
-function checkSevenPairs(regularTiles: MahjongTileData[], feiCount: number): boolean {
+export function checkSevenPairs(regularTiles: MahjongTileData[], feiCount: number): boolean {
   if (regularTiles.length + feiCount !== 14) return false;
 
   const countMap = new Map<number, number>();
@@ -301,6 +301,80 @@ function checkSevenPairs(regularTiles: MahjongTileData[], feiCount: number): boo
   }
 
   return false;
+}
+
+/**
+ * 检查碰碰胡 (All Pongs / 对对胡)
+ * 整副手牌由刻子/杠子和一组雀头组成，没有任何顺子
+ */
+export function checkIsAllPongs(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  if (melds.some(m => m.type === 'chow')) return false;
+
+  const regularTiles = handTiles.filter(t => t.category !== 'fei');
+  const feiCount = handTiles.filter(t => t.category === 'fei').length;
+  const neededMelds = 4 - melds.length;
+  if (regularTiles.length + feiCount !== neededMelds * 3 + 2) return false;
+
+  const counts = new Map<number, number>();
+  for (const t of regularTiles) {
+    const code = tileToCode(t);
+    counts.set(code, (counts.get(code) || 0) + 1);
+  }
+
+  const uniqueCodes = Array.from(counts.keys());
+
+  // 尝试每种牌作为雀头
+  for (const pairCode of uniqueCodes) {
+    const c = counts.get(pairCode) || 0;
+    if (c >= 2) {
+      counts.set(pairCode, c - 2);
+      if (canFormOnlyTriplets(counts, feiCount, neededMelds)) return true;
+      counts.set(pairCode, c);
+    }
+  }
+
+  if (feiCount >= 1) {
+    for (const pairCode of uniqueCodes) {
+      const c = counts.get(pairCode) || 0;
+      if (c >= 1) {
+        counts.set(pairCode, c - 1);
+        if (canFormOnlyTriplets(counts, feiCount - 1, neededMelds)) return true;
+        counts.set(pairCode, c);
+      }
+    }
+  }
+
+  if (feiCount >= 2) {
+    if (canFormOnlyTriplets(counts, feiCount - 2, neededMelds)) return true;
+  }
+
+  return false;
+}
+
+function canFormOnlyTriplets(counts: Map<number, number>, feiCount: number, neededMelds: number): boolean {
+  let neededFei = 0;
+  let meldsMade = 0;
+
+  for (const [, cnt] of counts.entries()) {
+    if (cnt === 0) continue;
+    const rem = cnt % 3;
+    const trips = Math.floor(cnt / 3);
+    meldsMade += trips;
+    if (rem === 1) {
+      neededFei += 2;
+      meldsMade += 1;
+    } else if (rem === 2) {
+      neededFei += 1;
+      meldsMade += 1;
+    }
+  }
+
+  if (neededFei > feiCount) return false;
+  const surplusFei = feiCount - neededFei;
+  if (surplusFei % 3 !== 0) return false;
+  meldsMade += surplusFei / 3;
+
+  return meldsMade === neededMelds;
 }
 
 /**

@@ -28,6 +28,7 @@ export const DEFAULT_RULES: RuleSettings = {
   allAnimalsFan: 5, // 抓齐四只动物 5 番
   noFeiBonusFan: 1, // 清飞 (无飞牌胡牌) 额外奖励 1 番
   fourFeiWinFan: 10, // 4只飞牌直接满胡 (10番)
+  noFlowerBaoFan: 10, // 无花(清花)爆番，默认 10 番 (满胡)
   feiCalculationMode: 'cash', // 默认飞牌不算番，直接算现金 (如RM 0.50/张或RM 1.00/张)
   feiCashAmount: 0.50, // 默认每张飞牌 RM 0.50 (可自由编辑)
   enableKongImmediateCash: true, // 默认开杠即刻收钱
@@ -64,6 +65,7 @@ export const DEFAULT_RULES: RuleSettings = {
   enableAllAnimals: true,
   enableNoFeiBonus: true,
   enableFourFeiWin: true,
+  enableNoFlowerBaoFan: true,
 };
 
 // 预设筹码底价供用户一键选择

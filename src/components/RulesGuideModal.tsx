@@ -155,6 +155,7 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({
                   <span className="font-black text-amber-400">10 番</span>
                 </div>
                 <ul className="space-y-1 text-emerald-200">
+                  <li><b>无花 (清花爆番)：</b> 赢牌时手头一张花牌、季节牌与动物神兽都没摸到（大马三人麻将维基百科经典 Limit Hand：No flowers/animals，直接满胡爆番 10 番）！</li>
                   <li><b>满天飞 (全飞)：</b> 手牌摸得 4 张飞牌百搭，无条件直接大满贯胡牌！</li>
                   <li><b>十三幺：</b> 1筒、9筒、东南西北、中发白各一张，加上其中任意一张作对子，外加飞牌。</li>
                   <li><b>大四喜：</b> 东南西北四组风牌刻子全齐。</li>

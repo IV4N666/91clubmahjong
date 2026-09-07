@@ -62,6 +62,7 @@ export interface RuleSettings {
   allAnimalsFan: number; // 抓齐四只动物番数 (默认 5番)
   noFeiBonusFan: number; // 无飞/清飞加番 (默认 1番)
   fourFeiWinFan: number; // 4只飞满天飞直接胡牌番数 (默认 10番或满胡)
+  noFlowerBaoFan: number; // 无花(清花)爆番番数 (默认 10番或满胡)
   // 飞牌结算模式：'cash' (不算番，直接算钱，如RM 0.50/张) 或 'fan' (+1番/张)
   feiCalculationMode: 'cash' | 'fan';
   feiCashAmount: number; // 飞牌单价现金金额 (RM)，支持自由编辑，默认 0.50
@@ -101,6 +102,7 @@ export interface RuleSettings {
   enableAllAnimals?: boolean; // 齐抓四兽开关
   enableNoFeiBonus?: boolean; // 无飞(清飞)加番开关
   enableFourFeiWin?: boolean; // 4飞满天飞胡牌开关
+  enableNoFlowerBaoFan?: boolean; // 无花(清花)爆番开关
 }
 
 export interface CalculationResult {

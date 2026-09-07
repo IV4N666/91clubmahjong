@@ -348,11 +348,32 @@ export function calculateMahjongScore(
     });
   }
 
+  // 无花 (清花爆番 / 满胡 - No flowers / seasons / faces / animals)
+  // 维基百科大马三人麻将标准规则：No flowers / seasons / faces / animals: 10 番 (爆番 / 满胡)
+  const hasNoBonusTiles = flowerAndAnimals.length === 0;
+  if ((rules.enableNoFlowerBaoFan ?? true) && hasNoBonusTiles && isWin) {
+    const noFlowerFan = rules.noFlowerBaoFan ?? 10;
+    fanItems.push({
+      id: 'no_flowers',
+      nameZh: '无花 (爆番)',
+      nameEn: 'No Flowers (Limit Hand)',
+      fan: noFlowerFan,
+      descriptionZh: `整局未摸任何花牌与动物牌，达成经典无花爆番（维基百科标准：直接满胡 +${noFlowerFan} 番）！`,
+      descriptionEn: `Won without any flowers, seasons, or animals (Wikipedia Limit Hand: +${noFlowerFan} Fan).`,
+      category: 'flower',
+    });
+  }
+
   // ----------------------------------------------------
   // 5. 牌型与色相 (Suits & Hand Patterns)
   // ----------------------------------------------------
   let handPatternZh = '普通胡';
   let handPatternEn = 'Regular Win';
+
+  if ((rules.enableNoFlowerBaoFan ?? true) && hasNoBonusTiles && isWin) {
+    handPatternZh = '无花爆番';
+    handPatternEn = 'No Flowers (Limit Hand)';
+  }
 
   // 清一色 (全色 - 纯筒子，无任何风牌与三元牌)
   const hasOnlyTong = allGameTiles.every(t => t.category === 'tong' || t.category === 'fei');
@@ -559,11 +580,15 @@ export function calculateMahjongScore(
   let isBaoFan = false;
 
   if (rules.multiplierType === 'linear') {
-    // 几番几底模式：1番 = 1倍底价 (如 7番 = 7 * base)；超过 10 番为爆番，得 20 * base
+    // 几番几底模式：1番 = 1倍底价 (如 7番 = 7 * base)；超过 10 番或达成爆番牌型算爆番，得 20 * base
     const baoFanThreshold = rules.baoFanThreshold ?? 10;
     const baoFanMultiplier = rules.baoFanMultiplier ?? 20;
 
-    if (totalFan > baoFanThreshold) {
+    const hasLimitHand = fanItems.some(
+      item => item.id === 'no_flowers' || item.id === 'four_fei' || item.id === 'thirteen_orphans'
+    );
+
+    if (totalFan > baoFanThreshold || (hasLimitHand && totalFan >= baoFanThreshold)) {
       isBaoFan = true;
       scorePerUnit = Number((basePrice * baoFanMultiplier).toFixed(2));
     } else {

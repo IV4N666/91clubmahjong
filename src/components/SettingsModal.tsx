@@ -1222,7 +1222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>🌺</span>
                 {lang === 'zh' ? '花牌、神兽满贯与飞牌大奖套组 (Combos & Full Sets)' : 'Flowers & Special Sets'}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {/* 一套花 */}
                 <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
                   (tempRules.enableFlowerSet ?? true)
@@ -1325,6 +1325,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {(tempRules.enableAllAnimals ?? true)
                       ? (lang === 'zh' ? '猫、鼠、鸡、蜈蚣4只全部到手。' : 'All 4 animals collected.')
                       : (lang === 'zh' ? '（已取消勾选：抓齐四兽不加大满贯番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 无花 (清花爆番 / 满胡) - Wikipedia Three-Player Mahjong Standard */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableNoFlowerBaoFan ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableNoFlowerBaoFan ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableNoFlowerBaoFan: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableNoFlowerBaoFan ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '无花 (爆番/满胡)' : 'No Flowers (Limit)'}
+                      </span>
+                    </label>
+                    {(tempRules.enableNoFlowerBaoFan ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.noFlowerBaoFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableNoFlowerBaoFan ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableNoFlowerBaoFan ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, noFlowerBaoFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.noFlowerBaoFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableNoFlowerBaoFan ?? true)
+                      ? (lang === 'zh' ? '胡牌未摸任何花牌与动物，按维基大马三人麻将规矩直接爆番（常用 10 番）。' : 'Won without flowers/animals (Classic limit hand: 10 Fan).')
+                      : (lang === 'zh' ? '（已取消勾选：无花不计爆番）' : '(Unticked: Disabled)')
                     }
                   </span>
                 </div>

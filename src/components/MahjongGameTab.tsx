@@ -113,8 +113,17 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     },
   ]);
 
+  // 使用 ref 避免异步闭包中读到过期的 players 与 wall 状态
+  const playersRef = useRef<GamePlayer[]>(players);
+  playersRef.current = players;
+
+  const wallRef = useRef<GameTile[]>(wall);
+  wallRef.current = wall;
+
   // 最近一张打出的牌
   const [lastDiscard, setLastDiscard] = useState<{ playerIndex: GameSeatIndex; tile: GameTile } | null>(null);
+  const lastDiscardRef = useRef<{ playerIndex: GameSeatIndex; tile: GameTile } | null>(null);
+  lastDiscardRef.current = lastDiscard;
 
   // 碰/杠/胡的响应窗口
   const [claimPrompt, setClaimPrompt] = useState<{
@@ -160,7 +169,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     }
   }, [initialRoomCode]);
 
-  // 获取桌面所有已见公共牌
+  // 获取桌面所有已见公共牌 (出牌河)
   const allDiscards = useMemo(() => {
     return players.flatMap(p => p.discards);
   }, [players]);
@@ -243,28 +252,34 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     // 3. 自动补花
     const replaced = replaceFlowersInHands(initialHands, initialFlowers, fullDeck);
 
-    // 4. 构建 3 位玩家初始状态
+    // 4. 构建 3 位玩家初始状态 (手牌严格升序理齐)
     const newPlayers: GamePlayer[] = players.map((p, idx) => {
       const custom = customPlayers ? customPlayers[idx] : null;
       const seat = idx as GameSeatIndex;
       const winds: ('east' | 'south' | 'west')[] = ['east', 'south', 'west'];
+      const sortedHand = sortHandTiles(replaced.hands[seat]);
       return {
         ...p,
         name: custom?.name || p.name,
         isAI: custom ? custom.isAI : p.isAI,
         seat,
         wind: winds[seat],
-        hand: replaced.hands[seat],
-        handCount: replaced.hands[seat].length,
+        hand: sortedHand,
+        handCount: sortedHand.length,
         melds: [],
         flowers: replaced.flowers[seat],
         discards: [],
       };
     });
 
+    wallRef.current = replaced.wall;
     setWall(replaced.wall);
+
+    playersRef.current = newPlayers;
     setPlayers(newPlayers);
+
     setCurrentTurn(dealerIndex);
+    lastDiscardRef.current = null;
     setLastDiscard(null);
     setClaimPrompt(null);
     setSettlement(null);
@@ -304,7 +319,6 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       if (dealerIndex === mySeatIndex) {
         setBannerMsg('🎉 恭喜！起手天胡/满天飞达成，可直接宣胡！');
       } else if (dealerPlayer.isAI) {
-        // AI 天胡
         setTimeout(() => {
           handleDeclareWin(dealerIndex, 'zimo', undefined, canDealerWin.calcResult!);
         }, 1000);
@@ -314,7 +328,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
     // 若庄家是 AI，触发 AI 出牌
     if (dealerPlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
-      scheduleAITurn(dealerIndex, newPlayers, replaced.wall);
+      scheduleAITurn(dealerIndex);
     }
   };
 
@@ -324,23 +338,35 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   const handleDiscardTile = (playerIndex: GameSeatIndex, tile: GameTile) => {
     soundFx.playTileClick();
 
-    // 1. 从手牌中移除，放入出牌河
-    let nextPlayers: GamePlayer[] = [];
-    setPlayers(prev => {
-      const copy = [...prev];
-      const p = copy[playerIndex];
-      const nextHand = p.hand.filter(t => t.uid !== tile.uid);
-      copy[playerIndex] = {
-        ...p,
-        hand: nextHand,
-        handCount: nextHand.length,
-        discards: [...p.discards, tile],
-      };
-      nextPlayers = copy;
-      return copy;
-    });
+    // 1. 从当前玩家手牌中精准移除 1 张牌，并按顺序理好手牌
+    const currentPlayers = [...playersRef.current];
+    const p = currentPlayers[playerIndex];
+    if (!p) return;
+
+    let removed = false;
+    const nextHand: GameTile[] = [];
+    for (const t of p.hand) {
+      if (!removed && (t.uid === tile.uid || t.id === tile.id)) {
+        removed = true;
+        continue;
+      }
+      nextHand.push(t);
+    }
+
+    const sortedHand = sortHandTiles(nextHand);
+    currentPlayers[playerIndex] = {
+      ...p,
+      hand: sortedHand,
+      handCount: sortedHand.length,
+      discards: [...p.discards, tile],
+    };
+
+    // 立即更新 ref 与 state，避免后续 advanceToNextTurn 读到陈旧的手牌
+    playersRef.current = currentPlayers;
+    setPlayers(currentPlayers);
 
     const newLastDiscard = { playerIndex, tile };
+    lastDiscardRef.current = newLastDiscard;
     setLastDiscard(newLastDiscard);
 
     // 2. 检查另外 2 位玩家是否能 胡 / 杠 / 碰
@@ -350,7 +376,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     let someoneCanClaim = false;
 
     for (const seat of otherSeats) {
-      const targetPlayer = (nextPlayers.length > 0 ? nextPlayers : players)[seat];
+      const targetPlayer = currentPlayers[seat];
 
       const winCheck = checkCanPlayerWin(
         targetPlayer.hand,
@@ -403,14 +429,14 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     if (someoneCanClaim) {
       // 广播给所有客端操作窗口
       broadcastSync(
-        wall,
-        nextPlayers.length > 0 ? nextPlayers : players,
+        wallRef.current,
+        currentPlayers,
         playerIndex,
         'claimWindow',
         newLastDiscard,
         promptsBySeat,
         null,
-        `[${(nextPlayers.length > 0 ? nextPlayers : players)[playerIndex].name}] 打出 [${tile.nameZh}]`
+        `[${p.name}] 打出 [${tile.nameZh}]`
       );
       return;
     }
@@ -420,7 +446,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   };
 
   // --------------------------------------------------------------------------
-  // 轮转至下一位玩家：摸牌与补花
+  // 轮转至下一位玩家：摸牌与补花 (保持手牌整齐排序)
   // --------------------------------------------------------------------------
   const advanceToNextTurn = (nextSeat: GameSeatIndex) => {
     setClaimPrompt(null);
@@ -428,51 +454,53 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     setCurrentTurn(nextSeat);
 
     // 检查荒牌
-    if (wall.length === 0) {
+    if (wallRef.current.length === 0) {
       handleDrawGame();
       return;
     }
 
     // 摸一张牌
-    const newWall = [...wall];
-    let drawn = newWall.pop()!;
-    let currentHand = [...players[nextSeat].hand];
-    let currentFlowers = [...players[nextSeat].flowers];
+    const currentWall = [...wallRef.current];
+    let drawn = currentWall.pop()!;
+    wallRef.current = currentWall;
+    setWall(currentWall);
+
+    const currentPlayers = [...playersRef.current];
+    const activePlayer = currentPlayers[nextSeat];
+    let currentHand = [...activePlayer.hand];
+    let currentFlowers = [...activePlayer.flowers];
 
     // 摸到花牌或动物，自动补花
-    while ((drawn.category === 'flower' || drawn.category === 'animal') && newWall.length > 0) {
+    while ((drawn.category === 'flower' || drawn.category === 'animal') && currentWall.length > 0) {
       currentFlowers.push(drawn);
       soundFx.playTileClick();
-      drawn = newWall.pop()!;
+      drawn = currentWall.pop()!;
     }
 
     currentHand.push(drawn);
-    setWall(newWall);
+    // 理齐手牌顺序
+    currentHand = sortHandTiles(currentHand);
 
-    let updatedPlayers: GamePlayer[] = [];
-    setPlayers(prev => {
-      const copy = [...prev];
-      copy[nextSeat] = {
-        ...copy[nextSeat],
-        hand: currentHand,
-        handCount: currentHand.length,
-        flowers: currentFlowers,
-      };
-      updatedPlayers = copy;
-      return copy;
-    });
+    currentPlayers[nextSeat] = {
+      ...activePlayer,
+      hand: currentHand,
+      handCount: currentHand.length,
+      flowers: currentFlowers,
+    };
 
-    const activePlayer = (updatedPlayers.length > 0 ? updatedPlayers : players)[nextSeat];
+    playersRef.current = currentPlayers;
+    setPlayers(currentPlayers);
+
     const banner = `轮到 [${activePlayer.name}] 摸牌 (${drawn.nameZh})`;
     setBannerMsg(banner);
 
     // 房主同步广播
     broadcastSync(
-      newWall,
-      updatedPlayers.length > 0 ? updatedPlayers : players,
+      currentWall,
+      currentPlayers,
       nextSeat,
       'playing',
-      lastDiscard,
+      lastDiscardRef.current,
       {},
       null,
       banner
@@ -502,19 +530,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
     // 若是 AI 回合，调度 AI 出牌
     if (activePlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
-      scheduleAITurn(nextSeat, updatedPlayers.length > 0 ? updatedPlayers : players, newWall);
+      scheduleAITurn(nextSeat);
     }
   };
 
   // --------------------------------------------------------------------------
   // AI 出牌计划调度
   // --------------------------------------------------------------------------
-  const scheduleAITurn = (aiSeat: GameSeatIndex, currentPlayers: GamePlayer[], currentWall: GameTile[]) => {
+  const scheduleAITurn = (aiSeat: GameSeatIndex) => {
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     const delay = gameSpeed === 'fast' ? 350 : 900;
 
     aiTimerRef.current = setTimeout(() => {
-      const p = currentPlayers[aiSeat];
+      const p = playersRef.current[aiSeat];
       if (!p || p.hand.length === 0) return;
 
       const tileToDiscard = chooseSmartAIDiscard(p.hand, p.melds);
@@ -523,50 +551,72 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   };
 
   // --------------------------------------------------------------------------
-  // 执行碰牌
+  // 执行碰牌：从出牌者弃牌河中拿走该牌，显示在碰牌者副露中
   // --------------------------------------------------------------------------
   const executePong = (seat: GameSeatIndex, tile: GameTile) => {
     soundFx.playTileClick();
-    let updatedPlayers: GamePlayer[] = [];
+    const currentPlayers = [...playersRef.current];
 
-    setPlayers(prev => {
-      const copy = [...prev];
-      const p = copy[seat];
-      const remainingHand: GameTile[] = [];
-      let removedCount = 0;
-      for (const t of p.hand) {
-        if (t.id === tile.id && removedCount < 2) {
-          removedCount++;
-        } else {
-          remainingHand.push(t);
-        }
+    // 1. 从刚才打出该牌的玩家出牌池中移除此牌 (出牌池不再残留！)
+    const throwerSeat = lastDiscardRef.current?.playerIndex;
+    if (throwerSeat !== undefined && currentPlayers[throwerSeat]) {
+      const thrower = currentPlayers[throwerSeat];
+      const nextDiscards = [...thrower.discards];
+      const lastIdx = nextDiscards.map(t => t.id).lastIndexOf(tile.id);
+      if (lastIdx !== -1) {
+        nextDiscards.splice(lastIdx, 1);
+      } else {
+        nextDiscards.pop();
       }
-
-      const newMeld: Meld = {
-        id: `meld_pong_${Date.now()}`,
-        type: 'pong',
-        tiles: [tile, tile, tile],
+      currentPlayers[throwerSeat] = {
+        ...thrower,
+        discards: nextDiscards,
       };
+    }
 
-      copy[seat] = {
-        ...p,
-        hand: remainingHand,
-        handCount: remainingHand.length,
-        melds: [...p.melds, newMeld],
-      };
-      updatedPlayers = copy;
-      return copy;
-    });
+    // 2. 从碰牌者手牌中移除 2 张相同的牌
+    const ponger = currentPlayers[seat];
+    let removedCount = 0;
+    const remainingHand: GameTile[] = [];
+    for (const t of ponger.hand) {
+      if (t.id === tile.id && removedCount < 2) {
+        removedCount++;
+      } else {
+        remainingHand.push(t);
+      }
+    }
+
+    // 3. 构建碰牌副露
+    const newMeld: Meld = {
+      id: `meld_pong_${Date.now()}`,
+      type: 'pong',
+      tiles: [tile, tile, tile],
+    };
+
+    const sortedHand = sortHandTiles(remainingHand);
+    currentPlayers[seat] = {
+      ...ponger,
+      hand: sortedHand,
+      handCount: sortedHand.length,
+      melds: [...ponger.melds, newMeld],
+    };
+
+    // 4. 清除 lastDiscard，因为已经被碰走作为副露
+    lastDiscardRef.current = null;
+    setLastDiscard(null);
+
+    playersRef.current = currentPlayers;
+    setPlayers(currentPlayers);
 
     setCurrentTurn(seat);
     setClaimPrompt(null);
     setPhase('playing');
-    const banner = `[${players[seat].name}] 碰了 [${tile.nameZh}]！请出牌`;
+    const banner = `[${ponger.name}] 碰了 [${tile.nameZh}]！请出牌`;
     setBannerMsg(banner);
 
     broadcastSync(
-      wall,
-      updatedPlayers.length > 0 ? updatedPlayers : players,
+      wallRef.current,
+      currentPlayers,
       seat,
       'playing',
       null,
@@ -575,75 +625,108 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       banner
     );
 
-    if (players[seat].isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
-      scheduleAITurn(seat, updatedPlayers.length > 0 ? updatedPlayers : players, wall);
+    if (ponger.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+      scheduleAITurn(seat);
     }
   };
 
   // --------------------------------------------------------------------------
-  // 执行杠牌
+  // 执行杠牌：若是明杠，从出牌池移除被杠的牌
   // --------------------------------------------------------------------------
   const executeKong = (seat: GameSeatIndex, tile: GameTile, type: 'ming' | 'an' | 'bu') => {
     soundFx.playTileClick();
-    let newWall = [...wall];
-    let replacementTile = newWall.pop();
-    let updatedPlayers: GamePlayer[] = [];
+    const currentPlayers = [...playersRef.current];
 
-    setPlayers(prev => {
-      const copy = [...prev];
-      const p = copy[seat];
-      let remainingHand: GameTile[] = [];
-
-      if (type === 'ming') {
-        let removed = 0;
-        for (const t of p.hand) {
-          if (t.id === tile.id && removed < 3) {
-            removed++;
-          } else {
-            remainingHand.push(t);
-          }
+    // 明杠：从打牌者弃牌池中移走被杠的牌
+    if (type === 'ming') {
+      const throwerSeat = lastDiscardRef.current?.playerIndex;
+      if (throwerSeat !== undefined && currentPlayers[throwerSeat]) {
+        const thrower = currentPlayers[throwerSeat];
+        const nextDiscards = [...thrower.discards];
+        const lastIdx = nextDiscards.map(t => t.id).lastIndexOf(tile.id);
+        if (lastIdx !== -1) {
+          nextDiscards.splice(lastIdx, 1);
+        } else {
+          nextDiscards.pop();
         }
-      } else if (type === 'an') {
-        let removed = 0;
-        for (const t of p.hand) {
-          if (t.id === tile.id && removed < 4) {
-            removed++;
-          } else {
-            remainingHand.push(t);
-          }
+        currentPlayers[throwerSeat] = {
+          ...thrower,
+          discards: nextDiscards,
+        };
+      }
+      lastDiscardRef.current = null;
+      setLastDiscard(null);
+    }
+
+    const currentWall = [...wallRef.current];
+    let replacementTile = currentWall.pop();
+    wallRef.current = currentWall;
+    setWall(currentWall);
+
+    const konger = currentPlayers[seat];
+    let remainingHand: GameTile[] = [];
+
+    if (type === 'ming') {
+      let removed = 0;
+      for (const t of konger.hand) {
+        if (t.id === tile.id && removed < 3) {
+          removed++;
+        } else {
+          remainingHand.push(t);
         }
       }
-
-      if (replacementTile) {
-        remainingHand.push(replacementTile);
+    } else if (type === 'an') {
+      let removed = 0;
+      for (const t of konger.hand) {
+        if (t.id === tile.id && removed < 4) {
+          removed++;
+        } else {
+          remainingHand.push(t);
+        }
       }
+    } else if (type === 'bu') {
+      let removed = false;
+      for (const t of konger.hand) {
+        if (!removed && t.id === tile.id) {
+          removed = true;
+        } else {
+          remainingHand.push(t);
+        }
+      }
+    }
 
-      const newMeld: Meld = {
-        id: `meld_kong_${Date.now()}`,
-        type: type === 'an' ? 'kong_concealed' : 'kong_exposed',
-        tiles: [tile, tile, tile, tile],
-      };
+    if (replacementTile) {
+      remainingHand.push(replacementTile);
+    }
 
-      copy[seat] = {
-        ...p,
-        hand: remainingHand,
-        handCount: remainingHand.length,
-        melds: [...p.melds, newMeld],
-      };
-      updatedPlayers = copy;
-      return copy;
-    });
+    const newMeld: Meld = {
+      id: `meld_kong_${Date.now()}`,
+      type: type === 'an' ? 'kong_concealed' : 'kong_exposed',
+      tiles: [tile, tile, tile, tile],
+    };
 
-    setWall(newWall);
+    const sortedHand = sortHandTiles(remainingHand);
+    currentPlayers[seat] = {
+      ...konger,
+      hand: sortedHand,
+      handCount: sortedHand.length,
+      melds: type === 'bu'
+        ? konger.melds.map(m => (m.type === 'pong' && m.tiles[0].id === tile.id ? newMeld : m))
+        : [...konger.melds, newMeld],
+    };
+
+    playersRef.current = currentPlayers;
+    setPlayers(currentPlayers);
+
     setCurrentTurn(seat);
     setClaimPrompt(null);
     setPhase('playing');
-    const banner = `[${players[seat].name}] 杠了 [${tile.nameZh}]！摸补牌后请出牌`;
+    const banner = `[${konger.name}] 杠了 [${tile.nameZh}]！摸补牌后请出牌`;
     setBannerMsg(banner);
 
     broadcastSync(
-      newWall,
-      updatedPlayers.length > 0 ? updatedPlayers : players,
+      currentWall,
+      currentPlayers,
       seat,
       'playing',
       null,
@@ -652,8 +735,8 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       banner
     );
 
-    if (players[seat].isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
-      scheduleAITurn(seat, updatedPlayers.length > 0 ? updatedPlayers : players, newWall);
+    if (konger.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+      scheduleAITurn(seat);
     }
   };
 
@@ -669,7 +752,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     soundFx.playWin();
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
 
-    const winner = players[winnerIndex];
+    const winner = playersRef.current[winnerIndex] || players[winnerIndex];
     let calc = customCalcResult;
 
     if (!calc) {
@@ -701,11 +784,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     setBannerMsg(banner);
 
     broadcastSync(
-      wall,
-      players,
+      wallRef.current,
+      playersRef.current,
       winnerIndex,
       'roundOver',
-      lastDiscard,
+      lastDiscardRef.current,
       {},
       settle,
       banner
@@ -720,11 +803,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     const banner = '牌墙已摸完，本局流局（荒牌）！';
     setBannerMsg(banner);
     broadcastSync(
-      wall,
-      players,
+      wallRef.current,
+      playersRef.current,
       currentTurn,
       'roundOver',
-      lastDiscard,
+      lastDiscardRef.current,
       {},
       null,
       banner
@@ -737,21 +820,21 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   const handleRecordToLedger = () => {
     if (!settlement || isRecorded) return;
 
-    const winner = players[settlement.winnerIndex];
+    const winner = playersRef.current[settlement.winnerIndex] || players[settlement.winnerIndex];
     const totalPot = settlement.calcResult.payout.winnerReceivedTotal;
     const payouts: Record<string, number> = {};
 
     payouts[winner.id] = totalPot;
 
     if (settlement.winType === 'zimo') {
-      players.forEach(p => {
+      playersRef.current.forEach(p => {
         if (p.id !== winner.id) {
           payouts[p.id] = -settlement.calcResult.payout.eachPayIfZimo;
         }
       });
     } else if (settlement.shooterIndex !== undefined) {
-      const shooter = players[settlement.shooterIndex];
-      players.forEach(p => {
+      const shooter = playersRef.current[settlement.shooterIndex];
+      playersRef.current.forEach(p => {
         if (p.id === shooter.id) {
           payouts[p.id] = -settlement.calcResult.payout.shooterPays;
         } else if (p.id !== winner.id) {
@@ -766,7 +849,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       timestamp: Date.now(),
       winnerId: winner.id,
       winType: settlement.winType,
-      shooterId: settlement.shooterIndex !== undefined ? players[settlement.shooterIndex].id : undefined,
+      shooterId: settlement.shooterIndex !== undefined ? playersRef.current[settlement.shooterIndex].id : undefined,
       fan: settlement.calcResult.totalFan,
       effectiveFan: settlement.calcResult.effectiveFan,
       handPattern: settlement.calcResult.handPatternNameZh,
@@ -802,6 +885,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         ...copy[mySeatIndex],
         hand: sortHandTiles(copy[mySeatIndex].hand),
       };
+      playersRef.current = copy;
       return copy;
     });
   };
@@ -812,7 +896,9 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   useEffect(() => {
     multiplayerService.onGameStateSync = (payload) => {
       if (payload.wallCount !== undefined) {
-        setWall(new Array(payload.wallCount).fill(null) as any);
+        const dummyWall = new Array(payload.wallCount).fill(null) as any;
+        wallRef.current = dummyWall;
+        setWall(dummyWall);
       }
       if (payload.currentTurn !== undefined) {
         setCurrentTurn(payload.currentTurn);
@@ -821,10 +907,23 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         setPhase(payload.phase);
       }
       if (payload.lastDiscard !== undefined) {
+        lastDiscardRef.current = payload.lastDiscard;
         setLastDiscard(payload.lastDiscard);
       }
       if (payload.players) {
-        setPlayers(payload.players);
+        // 客端收到同步后，确保自身手牌保持整齐排序
+        const mySeat = multiplayerService.mySeat;
+        const syncedPlayers: GamePlayer[] = payload.players.map((p: GamePlayer, idx: number) => {
+          if (idx === mySeat) {
+            return {
+              ...p,
+              hand: sortHandTiles(p.hand),
+            };
+          }
+          return p;
+        });
+        playersRef.current = syncedPlayers;
+        setPlayers(syncedPlayers);
       }
       if (payload.settlement !== undefined) {
         setSettlement(payload.settlement);
@@ -833,7 +932,6 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         setBannerMsg(payload.bannerMsg);
       }
 
-      // 检查分配给本机座位的操作提示
       const mySeat = multiplayerService.mySeat;
       if (payload.claimPrompts && payload.claimPrompts[mySeat]) {
         soundFx.playWin();
@@ -855,18 +953,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         } else if (claim === 'kong' && tile) {
           executeKong(action.seat, tile, 'ming');
         } else if (claim === 'win') {
+          const targetPlayer = playersRef.current[action.seat];
           const winCheck = checkCanPlayerWin(
-            players[action.seat].hand,
-            players[action.seat].melds,
-            players[action.seat].flowers,
+            targetPlayer.hand,
+            targetPlayer.melds,
+            targetPlayer.flowers,
             tile,
             false,
-            players[action.seat].wind,
+            targetPlayer.wind,
             activeGameRules
           );
-          handleDeclareWin(action.seat, 'discard', lastDiscard?.playerIndex, winCheck.calcResult);
+          handleDeclareWin(action.seat, 'discard', lastDiscardRef.current?.playerIndex, winCheck.calcResult);
         } else if (claim === 'pass') {
-          advanceToNextTurn(((lastDiscard?.playerIndex ?? 0) + 1) % 3 as GameSeatIndex);
+          advanceToNextTurn(((lastDiscardRef.current?.playerIndex ?? 0) + 1) % 3 as GameSeatIndex);
         }
       }
     };
@@ -875,9 +974,9 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       multiplayerService.onGameStateSync = undefined;
       multiplayerService.onPlayerAction = undefined;
     };
-  }, [players, activeGameRules, lastDiscard, mySeatIndex]);
+  }, [activeGameRules, mySeatIndex]);
 
-  // 初次载入
+  // 初次启动
   useEffect(() => {
     startNewGame();
     return () => {
@@ -887,6 +986,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
   const me = players[mySeatIndex] || players[0];
   const isMyTurn = currentTurn === mySeatIndex && phase === 'playing';
+
+  // 保证我的手牌始终按顺序排列
+  const sortedMyHand = useMemo(() => {
+    return sortHandTiles(me.hand);
+  }, [me.hand]);
 
   // 检查本机玩家自摸胡
   const myZimoCheck = useMemo(() => {
@@ -1014,7 +1118,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                   ))}
                 </div>
 
-                {/* 对手已吃/碰/杠副露 */}
+                {/* 对手已碰/杠明牌副露 */}
                 {opponent.melds.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1 items-center bg-black/20 p-1 rounded-lg">
                     {opponent.melds.map(meld => (
@@ -1161,35 +1265,68 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
             </div>
           )}
 
-          {/* 我的手牌 (点击打出) */}
+          {/* 我的手牌 (整齐有序单行排列，可横向滑动，摸牌微距分离) */}
           <div>
             <div className="flex items-center justify-between text-[11px] text-emerald-300/80 mb-1.5">
-              <span>手牌 ({me.hand.length} 张) - 点击可直接打出</span>
+              <span>手牌 ({sortedMyHand.length} 张) - 点击可直接打出</span>
               {isMyTurn && (
                 <span className="text-amber-300 font-bold animate-pulse">
                   👉 请选择一张牌打出
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-1 sm:gap-1.5 items-center justify-center min-h-[60px] p-2 bg-emerald-950/40 rounded-2xl border border-emerald-800/40">
-              {me.hand.map(tile => (
-                <MahjongTile
-                  key={tile.uid}
-                  tile={tile}
-                  size="md"
-                  onClick={() => {
-                    if (isMyTurn) {
-                      if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
-                        // 客端发送给房主
-                        multiplayerService.sendToHost('PLAYER_DISCARD', { tile });
-                      } else {
-                        handleDiscardTile(mySeatIndex, tile);
-                      }
-                    }
-                  }}
-                  disabled={!isMyTurn}
-                />
-              ))}
+            <div className="flex items-center justify-start sm:justify-center min-h-[64px] p-2 bg-emerald-950/40 rounded-2xl border border-emerald-800/40 overflow-x-auto max-w-full">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                {sortedMyHand.map((tile, idx) => {
+                  // 自己摸牌回合且手牌达到 14 张时，最后一张摸牌与手牌保持小间距分隔
+                  const isDrawnTile = isMyTurn && sortedMyHand.length % 3 === 2 && idx === sortedMyHand.length - 1;
+                  return (
+                    <React.Fragment key={tile.uid || `${tile.id}_${idx}`}>
+                      {isDrawnTile && (
+                        <div className="w-1.5 sm:w-2 border-r-2 border-amber-400/60 h-10 my-auto shrink-0 opacity-80" />
+                      )}
+                      <MahjongTile
+                        tile={tile}
+                        size="md"
+                        highlight={isDrawnTile}
+                        onClick={() => {
+                          if (isMyTurn) {
+                            if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                              // 客端先执行乐观移除本地牌，避免界面延迟回跳
+                              setPlayers(prev => {
+                                const copy = [...prev];
+                                const currentMe = copy[mySeatIndex];
+                                let rem = false;
+                                const nHand: GameTile[] = [];
+                                for (const t of currentMe.hand) {
+                                  if (!rem && (t.uid === tile.uid || t.id === tile.id)) {
+                                    rem = true;
+                                    continue;
+                                  }
+                                  nHand.push(t);
+                                }
+                                copy[mySeatIndex] = {
+                                  ...currentMe,
+                                  hand: sortHandTiles(nHand),
+                                  handCount: nHand.length,
+                                  discards: [...currentMe.discards, tile],
+                                };
+                                playersRef.current = copy;
+                                return copy;
+                              });
+                              // 发送指令至房主
+                              multiplayerService.sendToHost('PLAYER_DISCARD', { tile });
+                            } else {
+                              handleDiscardTile(mySeatIndex, tile);
+                            }
+                          }
+                        }}
+                        disabled={!isMyTurn}
+                      />
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

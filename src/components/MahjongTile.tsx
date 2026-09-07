@@ -3,7 +3,7 @@ import { MahjongTileData } from '../types/mahjong';
 import { soundFx } from '../utils/soundEffects';
 
 interface MahjongTileProps {
-  tile: MahjongTileData;
+  tile?: MahjongTileData;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   selected?: boolean;
   onClick?: () => void;
@@ -11,6 +11,7 @@ interface MahjongTileProps {
   badge?: string | number;
   highlight?: boolean;
   disabled?: boolean;
+  isBack?: boolean;
 }
 
 export const MahjongTile: React.FC<MahjongTileProps> = ({
@@ -22,6 +23,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
   badge,
   highlight = false,
   disabled = false,
+  isBack = false,
 }) => {
   const handleClick = () => {
     if (disabled) return;
@@ -37,6 +39,29 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
     lg: 'w-12 sm:w-14 h-[68px] sm:h-20 text-lg sm:text-xl rounded-lg',
     xl: 'w-14 sm:w-16 h-20 sm:h-24 text-xl sm:text-2xl rounded-xl',
   };
+
+  // 渲染牌背
+  if (isBack || !tile) {
+    return (
+      <div className="relative inline-block shrink-0">
+        <div
+          onClick={handleClick}
+          className={`
+            ${sizeClasses[size]}
+            shrink-0 relative flex items-center justify-center
+            bg-gradient-to-br from-[#1b5e38] via-[#14492b] to-[#0c301c]
+            border border-emerald-500/60 rounded-md shadow-md
+            ${onClick ? 'cursor-pointer hover:-translate-y-0.5 transition-transform' : ''}
+          `}
+        >
+          <div className="w-[78%] h-[80%] border border-emerald-400/25 rounded flex items-center justify-center bg-emerald-900/30">
+            <span className="text-emerald-400/40 text-[0.65em] font-black select-none">🀄</span>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 rounded-b-sm" />
+        </div>
+      </div>
+    );
+  }
 
   // 渲染麻将牌面
   const renderTileFace = () => {

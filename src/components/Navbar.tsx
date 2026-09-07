@@ -18,6 +18,8 @@ interface NavbarProps {
   onOpenCamera: () => void;
   onClearHand: () => void;
   onLoadSample: () => void;
+  activeTab?: 'calculator' | 'game';
+  onSelectTab?: (tab: 'calculator' | 'game') => void;
   // 保持接口兼容
   lang?: 'zh' | 'en';
   onToggleLang?: () => void;
@@ -34,40 +36,72 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCamera,
   onClearHand,
   onLoadSample,
+  activeTab = 'calculator',
+  onSelectTab,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[#0c2f1d]/95 backdrop-blur-md border-b border-emerald-800/60 shadow-lg px-2 py-2 sm:px-6 sm:py-2.5 w-full max-w-full overflow-x-hidden">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
-        {/* Logo & 标题：91Club (无多余图标，省空间) */}
-        <div className="flex items-center shrink-0">
+        {/* Logo & 标签页模式切换 */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <h1 className="font-extrabold text-base sm:text-lg bg-gradient-to-r from-amber-300 via-amber-200 to-emerald-100 bg-clip-text text-transparent tracking-wide whitespace-nowrap">
             91Club
           </h1>
+
+          {/* 模式切换器：算番助手 vs 试玩对战 */}
+          <div className="flex items-center bg-[#072416] p-0.5 rounded-xl border border-emerald-700/60 shadow-inner">
+            <button
+              type="button"
+              onClick={() => onSelectTab?.('calculator')}
+              className={`px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                activeTab === 'calculator'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
+                  : 'text-emerald-300/80 hover:text-emerald-100'
+              }`}
+            >
+              <span>🧮 算番</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectTab?.('game')}
+              className={`px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                activeTab === 'game'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
+                  : 'text-emerald-300/80 hover:text-emerald-100'
+              }`}
+            >
+              <span>🀄 对战</span>
+            </button>
+          </div>
         </div>
 
         {/* 顶部快捷操作 (全部纯图标，让手机端清空/刷新等所有功能完整展示) */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* 1. 范例手牌 */}
-          <button
-            type="button"
-            onClick={onLoadSample}
-            className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 flex items-center justify-center shadow-sm transition active:scale-95 shrink-0"
-            title="换高手范例手牌"
-            aria-label="换高手范例手牌"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-          </button>
+          {activeTab === 'calculator' && (
+            <>
+              {/* 1. 范例手牌 */}
+              <button
+                type="button"
+                onClick={onLoadSample}
+                className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 flex items-center justify-center shadow-sm transition active:scale-95 shrink-0"
+                title="换高手范例手牌"
+                aria-label="换高手范例手牌"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              </button>
 
-          {/* 2. 拍照识牌 */}
-          <button
-            type="button"
-            onClick={onOpenCamera}
-            className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 flex items-center justify-center shadow-md transition active:scale-95 shrink-0"
-            title="拍照识别手牌"
-            aria-label="拍照识别手牌"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
+              {/* 2. 拍照识牌 */}
+              <button
+                type="button"
+                onClick={onOpenCamera}
+                className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 flex items-center justify-center shadow-md transition active:scale-95 shrink-0"
+                title="拍照识别手牌"
+                aria-label="拍照识别手牌"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </>
+          )}
 
           {/* 3. 战绩账本与终局转账 */}
           <button
@@ -118,16 +152,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <QrCode className="w-4 h-4 text-amber-300" />
           </button>
 
-          {/* 7. 一键刷新 / 清空手牌 */}
-          <button
-            type="button"
-            onClick={onClearHand}
-            className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 flex items-center justify-center shadow-sm transition active:scale-95 shrink-0"
-            title="刷新/清空当前手牌"
-            aria-label="刷新/清空当前手牌"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          {activeTab === 'calculator' && (
+            /* 7. 一键刷新 / 清空手牌 */
+            <button
+              type="button"
+              onClick={onClearHand}
+              className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-lg bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 flex items-center justify-center shadow-sm transition active:scale-95 shrink-0"
+              title="刷新/清空当前手牌"
+              aria-label="刷新/清空当前手牌"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>

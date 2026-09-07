@@ -26,6 +26,7 @@ import { RulesGuideModal } from './components/RulesGuideModal';
 import { HistoryModal } from './components/HistoryModal';
 import { QRCodeModal } from './components/QRCodeModal';
 import { DiscardPool } from './components/DiscardPool';
+import { MahjongGameTab } from './components/MahjongGameTab';
 
 const DEFAULT_PLAYERS: Player[] = [
   { id: 'p1', name: '玩家 1 (我)', seat: 'east' },
@@ -38,6 +39,18 @@ export const App: React.FC = () => {
   const [lang, setLang] = useState<'zh' | 'en'>(() => {
     return (localStorage.getItem('mahjong_lang') as 'zh' | 'en') || 'zh';
   });
+
+  // 模式切换：'calculator' (算番助手) | 'game' (三人对战)
+  const [activeTab, setActiveTab] = useState<'calculator' | 'game'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('room')) return 'game';
+    return (localStorage.getItem('mahjong_active_tab') as 'calculator' | 'game') || 'calculator';
+  });
+
+  const handleSelectTab = (tab: 'calculator' | 'game') => {
+    setActiveTab(tab);
+    localStorage.setItem('mahjong_active_tab', tab);
+  };
 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     const s = localStorage.getItem('mahjong_sound');
@@ -401,65 +414,81 @@ export const App: React.FC = () => {
         onLoadSample={handleLoadSample}
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(!soundEnabled)}
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
       />
 
       {/* 主工作台 */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* 1. 当前手牌展示与胡牌条件 (Current Holding) */}
-        <HandDisplay
-          handTiles={handTiles}
-          melds={melds}
-          flowers={flowers}
-          winningConditions={winningConditions}
-          onUpdateConditions={(cond) => setWinningConditions(prev => ({ ...prev, ...cond }))}
-          onRemoveHandTile={handleRemoveHandTile}
-          onRemoveMeld={handleRemoveMeld}
-          onRemoveFlower={handleRemoveFlower}
-          lang={lang}
-          onCalculate={handleCalculate}
-          isWinReady={isWinReady}
-          totalTilesCount={totalRegularTilesCount}
-          rules={rules}
-        />
+        {activeTab === 'game' ? (
+          <MahjongGameTab
+            rules={rules}
+            lang={lang}
+            soundEnabled={soundEnabled}
+            onRecordRoundToLedger={(record) => {
+              setRounds(prev => [record, ...prev]);
+            }}
+            onOpenRules={() => setIsRulesOpen(true)}
+          />
+        ) : (
+          <>
+            {/* 1. 当前手牌展示与胡牌条件 (Current Holding) */}
+            <HandDisplay
+              handTiles={handTiles}
+              melds={melds}
+              flowers={flowers}
+              winningConditions={winningConditions}
+              onUpdateConditions={(cond) => setWinningConditions(prev => ({ ...prev, ...cond }))}
+              onRemoveHandTile={handleRemoveHandTile}
+              onRemoveMeld={handleRemoveMeld}
+              onRemoveFlower={handleRemoveFlower}
+              lang={lang}
+              onCalculate={handleCalculate}
+              isWinReady={isWinReady}
+              totalTilesCount={totalRegularTilesCount}
+              rules={rules}
+            />
 
-        {/* 2. 选牌添加面板 (Add - 位于当前手牌下方) */}
-        <TilePicker
-          onAddTile={handleAddTile}
-          onAddMeld={handleAddMeld}
-          onAddFlower={handleAddFlower}
-          onAddDiscardTile={handleAddDiscardTile}
-          handTiles={handTiles}
-          flowers={flowers}
-          melds={melds}
-          discardPool={discardPool}
-          lang={lang}
-          rules={rules}
-        />
+            {/* 2. 选牌添加面板 (Add - 位于当前手牌下方) */}
+            <TilePicker
+              onAddTile={handleAddTile}
+              onAddMeld={handleAddMeld}
+              onAddFlower={handleAddFlower}
+              onAddDiscardTile={handleAddDiscardTile}
+              handTiles={handTiles}
+              flowers={flowers}
+              melds={melds}
+              discardPool={discardPool}
+              lang={lang}
+              rules={rules}
+            />
 
-        {/* 3. 桌面公共出牌池 (Public Pool - 位于选牌面板下方) */}
-        <DiscardPool
-          discardPool={discardPool}
-          onAddDiscardTile={handleAddDiscardTile}
-          onRemoveDiscardTile={handleRemoveDiscardTile}
-          onClearDiscardPool={handleClearDiscardPool}
-          handTiles={handTiles}
-          melds={melds}
-          lang={lang}
-        />
+            {/* 3. 桌面公共出牌池 (Public Pool - 位于选牌面板下方) */}
+            <DiscardPool
+              discardPool={discardPool}
+              onAddDiscardTile={handleAddDiscardTile}
+              onRemoveDiscardTile={handleRemoveDiscardTile}
+              onClearDiscardPool={handleClearDiscardPool}
+              handTiles={handTiles}
+              melds={melds}
+              lang={lang}
+            />
 
-        {/* 4. 新手打牌与听牌指导建议 (Recommendation - 位于最底部) */}
-        <BeginnerHelper
-          analysis={shantenAnalysis}
-          rules={rules}
-          lang={lang}
-          onSelectDiscardTile={(tile) => {
-            const idx = handTiles.findIndex(t => t.id === tile.id);
-            if (idx !== -1) {
-              handleRemoveHandTile(idx);
-              handleAddDiscardTile(tile); // 打出的牌自动落入桌面公共弃牌池
-            }
-          }}
-        />
+            {/* 4. 新手打牌与听牌指导建议 (Recommendation - 位于最底部) */}
+            <BeginnerHelper
+              analysis={shantenAnalysis}
+              rules={rules}
+              lang={lang}
+              onSelectDiscardTile={(tile) => {
+                const idx = handTiles.findIndex(t => t.id === tile.id);
+                if (idx !== -1) {
+                  handleRemoveHandTile(idx);
+                  handleAddDiscardTile(tile); // 打出的牌自动落入桌面公共弃牌池
+                }
+              }}
+            />
+          </>
+        )}
       </main>
 
       {/* 底部信息 */}

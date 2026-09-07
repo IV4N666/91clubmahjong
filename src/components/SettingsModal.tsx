@@ -500,10 +500,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div>
               <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
                 <span>🎨</span>
-                {lang === 'zh' ? '全牌型与特色番数定制 (全部Set自由调番)' : 'All Pattern & Action Fan Settings'}
+                {lang === 'zh' ? '全牌型与特色番数定制 (全部Set可勾选打/不打 & 自由调番)' : 'All Pattern & Action Settings (Tick to Play / Fan)'}
               </span>
               <p className="text-[11px] text-emerald-400/80 mt-0.5">
-                {lang === 'zh' ? '根据您家常打的规矩，自由定义所有牌型、动作与神兽组合番数：' : 'Customize fan values for each pattern according to your table rules:'}
+                {lang === 'zh' ? '打勾开启计番，取消打勾则不玩该规则（不算番/不算特殊牌型）：' : 'Tick to enable rule scoring, untick to disable it:'}
               </p>
             </div>
 
@@ -515,20 +515,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {/* 混一色 (半色) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableHalfFlush ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '混一色 (半色)' : 'Half Flush'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.halfFlushFan ?? 2} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableHalfFlush ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableHalfFlush: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableHalfFlush ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '混一色 (半色)' : 'Half Flush'}
+                      </span>
+                    </label>
+                    {(tempRules.enableHalfFlush ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.halfFlushFan ?? 2} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableHalfFlush ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3, 4].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableHalfFlush ?? true)}
                         onClick={() => setTempRules({ ...tempRules, halfFlushFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.halfFlushFan ?? 2) === fan
@@ -541,25 +560,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '筒子搭配风字牌（常规 2 番）。' : 'Dots + Honors (std: 2F).'}
+                    {(tempRules.enableHalfFlush ?? true)
+                      ? (lang === 'zh' ? '筒子搭配风字牌（常规 2 番）。' : 'Dots + Honors (std: 2F).')
+                      : (lang === 'zh' ? '（已取消勾选：不计混一色番数）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 清一色 (全色) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFullFlush ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '清一色 (全色)' : 'Full Flush'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.fullFlushFan ?? 4} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFullFlush ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFullFlush: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFullFlush ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '清一色 (全色)' : 'Full Flush'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFullFlush ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.fullFlushFan ?? 4} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFullFlush ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[3, 4, 5, 8].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableFullFlush ?? true)}
                         onClick={() => setTempRules({ ...tempRules, fullFlushFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.fullFlushFan ?? 4) === fan
@@ -572,25 +613,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '纯筒子无字牌（常规 4 或 5 番）。' : 'Pure dots only (std: 4F).'}
+                    {(tempRules.enableFullFlush ?? true)
+                      ? (lang === 'zh' ? '纯筒子无字牌（常规 4 或 5 番）。' : 'Pure dots only (std: 4F).')
+                      : (lang === 'zh' ? '（已取消勾选：不计清一色番数）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 碰碰胡 (对对胡) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableAllPongs ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '碰碰胡 (对对胡)' : 'All Pongs'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.allPongsFan ?? 2} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableAllPongs ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableAllPongs: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableAllPongs ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '碰碰胡 (对对胡)' : 'All Pongs'}
+                      </span>
+                    </label>
+                    {(tempRules.enableAllPongs ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.allPongsFan ?? 2} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableAllPongs ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3, 4].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableAllPongs ?? true)}
                         onClick={() => setTempRules({ ...tempRules, allPongsFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.allPongsFan ?? 2) === fan
@@ -603,25 +666,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '全由刻子/杠子组成（常规 2 番）。' : 'Triplets only (std: 2F).'}
+                    {(tempRules.enableAllPongs ?? true)
+                      ? (lang === 'zh' ? '全由刻子/杠子组成（常规 2 番）。' : 'Triplets only (std: 2F).')
+                      : (lang === 'zh' ? '（已取消勾选：不计碰碰胡番数）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 一条龙 (纯筒龙) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enablePureStraight ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '一条龙 (1-9筒)' : 'Pure Straight'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.pureStraightFan ?? 2} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enablePureStraight ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enablePureStraight: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enablePureStraight ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '一条龙 (1-9筒)' : 'Pure Straight'}
+                      </span>
+                    </label>
+                    {(tempRules.enablePureStraight ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.pureStraightFan ?? 2} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enablePureStraight ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3, 4].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enablePureStraight ?? true)}
                         onClick={() => setTempRules({ ...tempRules, pureStraightFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.pureStraightFan ?? 2) === fan
@@ -634,25 +719,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '持一至九筒顺龙（常规 2 番）。' : '1 to 9 dots straight (std: 2F).'}
+                    {(tempRules.enablePureStraight ?? true)
+                      ? (lang === 'zh' ? '持一至九筒顺龙（常规 2 番）。' : '1 to 9 dots straight (std: 2F).')
+                      : (lang === 'zh' ? '（已取消勾选：不计一条龙番数）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 小三元 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableSmallThreeDragons ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '小三元' : 'Small 3 Dragons'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.smallThreeDragonsFan ?? 3} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableSmallThreeDragons ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableSmallThreeDragons: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableSmallThreeDragons ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '小三元' : 'Small 3 Dragons'}
+                      </span>
+                    </label>
+                    {(tempRules.enableSmallThreeDragons ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.smallThreeDragonsFan ?? 3} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableSmallThreeDragons ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[2, 3, 4, 5].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableSmallThreeDragons ?? true)}
                         onClick={() => setTempRules({ ...tempRules, smallThreeDragonsFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.smallThreeDragonsFan ?? 3) === fan
@@ -665,25 +772,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '两组中发白刻子+一组对子（常规 3 番）。' : '2 dragon pongs + 1 pair.'}
+                    {(tempRules.enableSmallThreeDragons ?? true)
+                      ? (lang === 'zh' ? '两组中发白刻子+一组对子（常规 3 番）。' : '2 dragon pongs + 1 pair.')
+                      : (lang === 'zh' ? '（已取消勾选：不计小三元）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 大三元 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableBigThreeDragons ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '大三元' : 'Big 3 Dragons'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.bigThreeDragonsFan ?? 5} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableBigThreeDragons ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableBigThreeDragons: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableBigThreeDragons ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '大三元' : 'Big 3 Dragons'}
+                      </span>
+                    </label>
+                    {(tempRules.enableBigThreeDragons ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.bigThreeDragonsFan ?? 5} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableBigThreeDragons ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[3, 5, 8, 10].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableBigThreeDragons ?? true)}
                         onClick={() => setTempRules({ ...tempRules, bigThreeDragonsFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.bigThreeDragonsFan ?? 5) === fan
@@ -696,25 +825,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '中、发、白三组刻子全齐（常规 5 番）。' : 'Triplets of all 3 dragons.'}
+                    {(tempRules.enableBigThreeDragons ?? true)
+                      ? (lang === 'zh' ? '中、发、白三组刻子全齐（常规 5 番）。' : 'Triplets of all 3 dragons.')
+                      : (lang === 'zh' ? '（已取消勾选：不计大三元）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 七对子 (小七对) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableSevenPairs ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '七对子 (小七对)' : 'Seven Pairs'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.sevenPairsFan ?? 5} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableSevenPairs ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableSevenPairs: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableSevenPairs ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '七对子 (小七对)' : 'Seven Pairs'}
+                      </span>
+                    </label>
+                    {(tempRules.enableSevenPairs ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.sevenPairsFan ?? 5} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableSevenPairs ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[3, 5, 8, 10].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableSevenPairs ?? true)}
                         onClick={() => setTempRules({ ...tempRules, sevenPairsFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.sevenPairsFan ?? 5) === fan
@@ -727,25 +878,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '手牌由 7 个对子组成（常用 5 番）。' : '7 pairs concealed hand.'}
+                    {(tempRules.enableSevenPairs ?? true)
+                      ? (lang === 'zh' ? '手牌由 7 个对子组成（常用 5 番）。' : '7 pairs concealed hand.')
+                      : (lang === 'zh' ? '（已取消勾选：不认可七对子胡牌）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 十三幺 (国士无双) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableThirteenOrphans ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '十三幺 (国士无双)' : '13 Orphans'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.thirteenOrphansFan ?? 10} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableThirteenOrphans ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableThirteenOrphans: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableThirteenOrphans ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '十三幺 (国士无双)' : '13 Orphans'}
+                      </span>
+                    </label>
+                    {(tempRules.enableThirteenOrphans ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.thirteenOrphansFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableThirteenOrphans ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[5, 8, 10, 16].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableThirteenOrphans ?? true)}
                         onClick={() => setTempRules({ ...tempRules, thirteenOrphansFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.thirteenOrphansFan ?? 10) === fan
@@ -758,27 +931,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '1筒9筒东南西北中发白（常规满胡 10/16番）。' : '1, 9, winds & dragons (Limit).'}
+                    {(tempRules.enableThirteenOrphans ?? true)
+                      ? (lang === 'zh' ? '1筒9筒东南西北中发白（常规满胡 10/16番）。' : '1, 9, winds & dragons (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不认可十三幺特殊胡牌）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 门清 (未吃碰) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableMenqing ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '门清 (未副露)' : 'Concealed Hand'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {(tempRules.menqingFan ?? 1) === 0
-                        ? (lang === 'zh' ? '不算' : '0')
-                        : `${tempRules.menqingFan ?? 1} 番`}
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableMenqing ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableMenqing: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableMenqing ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '门清 (未副露)' : 'Concealed Hand'}
+                      </span>
+                    </label>
+                    {(tempRules.enableMenqing ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {(tempRules.menqingFan ?? 1) === 0
+                          ? (lang === 'zh' ? '不算' : '0')
+                          : `${tempRules.menqingFan ?? 1} 番`}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableMenqing ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[0, 1, 2].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableMenqing ?? true)}
                         onClick={() => setTempRules({ ...tempRules, menqingFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.menqingFan ?? 1) === fan
@@ -791,7 +986,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '手牌无露面副露（自摸时再加+1番）。' : 'No exposed melds.'}
+                    {(tempRules.enableMenqing ?? true)
+                      ? (lang === 'zh' ? '手牌无露面副露（自摸时再加+1番）。' : 'No exposed melds.')
+                      : (lang === 'zh' ? '（已取消勾选：不计门清加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
               </div>
@@ -805,20 +1003,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
                 {/* 自摸 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableZimoBonus ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '自摸额外加番' : 'Self-Drawn (Zimo)'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.zimoFan ?? 1} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableZimoBonus ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableZimoBonus: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableZimoBonus ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '自摸额外加番' : 'Self-Drawn'}
+                      </span>
+                    </label>
+                    {(tempRules.enableZimoBonus ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.zimoFan ?? 1} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableZimoBonus ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[0, 1, 2].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableZimoBonus ?? true)}
                         onClick={() => setTempRules({ ...tempRules, zimoFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.zimoFan ?? 1) === fan
@@ -831,25 +1048,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '自己摸起胡牌加番（通常 +1 番）。' : 'Self-drawn tile (+1F).'}
+                    {(tempRules.enableZimoBonus ?? true)
+                      ? (lang === 'zh' ? '自己摸起胡牌加番（通常 +1 番）。' : 'Self-drawn tile (+1F).')
+                      : (lang === 'zh' ? '（已取消勾选：自摸不额外加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 杠上开花 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableKongBloom ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '杠上开花' : 'Kong Bloom'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      +{tempRules.kongBloomFan ?? 1} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableKongBloom ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableKongBloom: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableKongBloom ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '杠上开花' : 'Kong Bloom'}
+                      </span>
+                    </label>
+                    {(tempRules.enableKongBloom ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        +{tempRules.kongBloomFan ?? 1} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableKongBloom ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableKongBloom ?? true)}
                         onClick={() => setTempRules({ ...tempRules, kongBloomFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.kongBloomFan ?? 1) === fan
@@ -862,25 +1101,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '开杠补牌时摸到胡牌。' : 'Win on replacement tile.'}
+                    {(tempRules.enableKongBloom ?? true)
+                      ? (lang === 'zh' ? '开杠补牌时摸到胡牌。' : 'Win on replacement tile.')
+                      : (lang === 'zh' ? '（已取消勾选：杠开不额外加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 抢杠 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableRobbingKong ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '抢杠' : 'Robbing Kong'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      +{tempRules.robbingKongFan ?? 1} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableRobbingKong ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableRobbingKong: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableRobbingKong ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '抢杠' : 'Robbing Kong'}
+                      </span>
+                    </label>
+                    {(tempRules.enableRobbingKong ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        +{tempRules.robbingKongFan ?? 1} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableRobbingKong ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableRobbingKong ?? true)}
                         onClick={() => setTempRules({ ...tempRules, robbingKongFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.robbingKongFan ?? 1) === fan
@@ -893,25 +1154,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '胡别家补杠的那张牌。' : 'Rob opponent kong tile.'}
+                    {(tempRules.enableRobbingKong ?? true)
+                      ? (lang === 'zh' ? '胡别家补杠的那张牌。' : 'Rob opponent kong tile.')
+                      : (lang === 'zh' ? '（已取消勾选：抢杠不额外加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 海底捞月 / 捞沙 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableLastTile ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '海底捞月/捞沙' : 'Last Tile Win'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      +{tempRules.lastTileFan ?? 1} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableLastTile ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableLastTile: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableLastTile ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '海底捞月/捞沙' : 'Last Tile Win'}
+                      </span>
+                    </label>
+                    {(tempRules.enableLastTile ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        +{tempRules.lastTileFan ?? 1} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableLastTile ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableLastTile ?? true)}
                         onClick={() => setTempRules({ ...tempRules, lastTileFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.lastTileFan ?? 1) === fan
@@ -924,7 +1207,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '最后一张摸牌或别家最后一张出冲。' : 'Win on final wall tile.'}
+                    {(tempRules.enableLastTile ?? true)
+                      ? (lang === 'zh' ? '最后一张摸牌或别家最后一张出冲。' : 'Win on final wall tile.')
+                      : (lang === 'zh' ? '（已取消勾选：海底不额外加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
               </div>
@@ -938,20 +1224,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
                 {/* 一套花 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFlowerSet ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '一套花 (四季/四君子)' : 'Full Flower Set'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      +{tempRules.flowerSetFan ?? 2} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFlowerSet ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFlowerSet: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFlowerSet ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '一套花 (四季/四君子)' : 'Full Flower Set'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFlowerSet ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        +{tempRules.flowerSetFan ?? 2} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFlowerSet ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[1, 2, 3, 4].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableFlowerSet ?? true)}
                         onClick={() => setTempRules({ ...tempRules, flowerSetFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.flowerSetFan ?? 2) === fan
@@ -964,25 +1269,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '春夏秋冬或梅兰竹菊4张成套额外加番。' : 'Complete 4 flowers set.'}
+                    {(tempRules.enableFlowerSet ?? true)
+                      ? (lang === 'zh' ? '春夏秋冬或梅兰竹菊4张成套额外加番。' : 'Complete 4 flowers set.')
+                      : (lang === 'zh' ? '（已取消勾选：一套花不额外加番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 齐抓四兽 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableAllAnimals ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '齐抓四兽 (大满贯)' : 'All 4 Animals'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.allAnimalsFan ?? 5} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableAllAnimals ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableAllAnimals: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableAllAnimals ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '齐抓四兽 (大满贯)' : 'All 4 Animals'}
+                      </span>
+                    </label>
+                    {(tempRules.enableAllAnimals ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.allAnimalsFan ?? 5} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableAllAnimals ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[3, 5, 8, 10].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableAllAnimals ?? true)}
                         onClick={() => setTempRules({ ...tempRules, allAnimalsFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.allAnimalsFan ?? 5) === fan
@@ -995,27 +1322,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '猫、鼠、鸡、蜈蚣4只全部到手。' : 'All 4 animals collected.'}
+                    {(tempRules.enableAllAnimals ?? true)
+                      ? (lang === 'zh' ? '猫、鼠、鸡、蜈蚣4只全部到手。' : 'All 4 animals collected.')
+                      : (lang === 'zh' ? '（已取消勾选：抓齐四兽不加大满贯番）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 清飞 / 无飞奖励 */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableNoFeiBonus ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '无飞 (清飞胡)' : 'No Fei (Clean)'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {(tempRules.noFeiBonusFan ?? 1) === 0
-                        ? (lang === 'zh' ? '0番' : '0')
-                        : `+${tempRules.noFeiBonusFan ?? 1} 番`}
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableNoFeiBonus ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableNoFeiBonus: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableNoFeiBonus ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '无飞 (清飞胡)' : 'No Fei (Clean)'}
+                      </span>
+                    </label>
+                    {(tempRules.enableNoFeiBonus ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {(tempRules.noFeiBonusFan ?? 1) === 0
+                          ? (lang === 'zh' ? '0番' : '0')
+                          : `+${tempRules.noFeiBonusFan ?? 1} 番`}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不加番' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableNoFeiBonus ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[0, 1, 2].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableNoFeiBonus ?? true)}
                         onClick={() => setTempRules({ ...tempRules, noFeiBonusFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.noFeiBonusFan ?? 1) === fan
@@ -1028,25 +1377,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '手牌无任何飞牌百搭胡牌奖励。' : 'Win without any Fei jokers.'}
+                    {(tempRules.enableNoFeiBonus ?? true)
+                      ? (lang === 'zh' ? '手牌无任何飞牌百搭胡牌奖励。' : 'Win without any Fei jokers.')
+                      : (lang === 'zh' ? '（已取消勾选：清飞无额外奖励）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
 
                 {/* 满天飞 (4飞直接胡) */}
-                <div className="bg-[#092215] border border-emerald-800/80 rounded-xl p-2.5 space-y-1.5">
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFourFeiWin ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-200 text-xs">
-                      {lang === 'zh' ? '满天飞 (4飞直接胡)' : 'All 4 Fei Win'}
-                    </span>
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
-                      {tempRules.fourFeiWinFan ?? 10} 番
-                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFourFeiWin ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFourFeiWin: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFourFeiWin ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '满天飞 (4飞直接胡)' : 'All 4 Fei Win'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFourFeiWin ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.fourFeiWinFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFourFeiWin ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
                     {[5, 8, 10, 16].map((fan) => (
                       <button
                         key={fan}
                         type="button"
+                        disabled={!(tempRules.enableFourFeiWin ?? true)}
                         onClick={() => setTempRules({ ...tempRules, fourFeiWinFan: fan })}
                         className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
                           (tempRules.fourFeiWinFan ?? 10) === fan
@@ -1059,7 +1430,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '抓到4张飞牌满天飞大满贯包赢。' : 'Instant win with all 4 Fei.'}
+                    {(tempRules.enableFourFeiWin ?? true)
+                      ? (lang === 'zh' ? '抓到4张飞牌满天飞大满贯包赢。' : 'Instant win with all 4 Fei.')
+                      : (lang === 'zh' ? '（已取消勾选：4张飞不算直接满胡）' : '(Unticked: Disabled)')
+                    }
                   </span>
                 </div>
               </div>

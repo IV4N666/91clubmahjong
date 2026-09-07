@@ -46,6 +46,24 @@ export const DEFAULT_RULES: RuleSettings = {
   robbingKongFan: 1, // 抢杠 默认 1 番
   lastTileFan: 1, // 海底捞月/捞沙 默认 1 番
   animalBiteFan: 1, // 动物咬到 默认 1 番
+  // 默认全部开启 (玩家可随意打勾/去勾)
+  enableHalfFlush: true,
+  enableFullFlush: true,
+  enableAllPongs: true,
+  enablePureStraight: true,
+  enableSmallThreeDragons: true,
+  enableBigThreeDragons: true,
+  enableSevenPairs: true,
+  enableThirteenOrphans: true,
+  enableMenqing: true,
+  enableZimoBonus: true,
+  enableKongBloom: true,
+  enableRobbingKong: true,
+  enableLastTile: true,
+  enableFlowerSet: true,
+  enableAllAnimals: true,
+  enableNoFeiBonus: true,
+  enableFourFeiWin: true,
 };
 
 // 预设筹码底价供用户一键选择

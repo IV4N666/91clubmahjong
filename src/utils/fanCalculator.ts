@@ -26,7 +26,7 @@ export function calculateMahjongScore(
   const warnings: string[] = [];
 
   const allHandTiles = [...handTiles];
-  const isWin = checkIsWin(allHandTiles, melds);
+  const isWin = checkIsWin(allHandTiles, melds, rules);
 
   if (!isWin) {
     warnings.push('当前手牌未满足胡牌结构（需4组面子+1雀头，或十三幺/七对子）。');
@@ -56,7 +56,7 @@ export function calculateMahjongScore(
   // ----------------------------------------------------
   const isFeiCashMode = rules.feiCalculationMode === 'cash';
 
-  if (feiInHandCount >= 4) {
+  if ((rules.enableFourFeiWin ?? true) && feiInHandCount >= 4) {
     fanItems.push({
       id: 'four_fei',
       nameZh: '满天飞 (全飞胡)',
@@ -78,13 +78,13 @@ export function calculateMahjongScore(
         descriptionEn: `Fei jokers yield 0 Fan, paying RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)} cash each.`,
         category: 'fei',
       });
-    } else if (rules.noFeiBonusFan > 0 && isWin) {
+    } else if ((rules.enableNoFeiBonus ?? true) && rules.noFeiBonusFan > 0 && isWin) {
       fanItems.push({
         id: 'no_fei',
         nameZh: '无飞 (清飞)',
         nameEn: 'Zero Jokers (Clean Hand)',
         fan: rules.noFeiBonusFan,
-        descriptionZh: '手中一张飞牌都没用，纯正胡牌奖励 +1 番！',
+        descriptionZh: `手中一张飞牌都没用，纯正胡牌奖励 +${rules.noFeiBonusFan} 番！`,
         descriptionEn: 'Won without using any Fei jokers.',
         category: 'fei',
       });
@@ -101,13 +101,13 @@ export function calculateMahjongScore(
         descriptionEn: `Each Fei joker in hand yields +1 Fan.`,
         category: 'fei',
       });
-    } else if (rules.noFeiBonusFan > 0 && isWin) {
+    } else if ((rules.enableNoFeiBonus ?? true) && rules.noFeiBonusFan > 0 && isWin) {
       fanItems.push({
         id: 'no_fei',
         nameZh: '无飞 (清飞)',
         nameEn: 'Zero Jokers (Clean Hand)',
         fan: rules.noFeiBonusFan,
-        descriptionZh: '手中一张飞牌都没用，纯正胡牌奖励 +1 番！',
+        descriptionZh: `手中一张飞牌都没用，纯正胡牌奖励 +${rules.noFeiBonusFan} 番！`,
         descriptionEn: 'Won without using any Fei jokers.',
         category: 'fei',
       });
@@ -117,7 +117,7 @@ export function calculateMahjongScore(
   // ----------------------------------------------------
   // 3. 基本赢牌状况番
   // ----------------------------------------------------
-  if (winningConditions.isZimo) {
+  if ((rules.enableZimoBonus ?? true) && winningConditions.isZimo) {
     const zimoFan = rules.zimoFan ?? 1;
     fanItems.push({
       id: 'zimo',
@@ -133,7 +133,7 @@ export function calculateMahjongScore(
   // 门清 (无副露，或全部暗杠)
   const hasExposedMelds = melds.some(m => m.type !== 'kong_concealed');
   const baseMenqingFan = rules.menqingFan ?? 1;
-  if (!hasExposedMelds && baseMenqingFan > 0) {
+  if ((rules.enableMenqing ?? true) && !hasExposedMelds && baseMenqingFan > 0) {
     const finalMenqingFan = winningConditions.isZimo ? baseMenqingFan + 1 : baseMenqingFan;
     fanItems.push({
       id: 'menqing',
@@ -148,7 +148,7 @@ export function calculateMahjongScore(
     });
   }
 
-  if (winningConditions.isKongBloom) {
+  if ((rules.enableKongBloom ?? true) && winningConditions.isKongBloom) {
     const kongBloomFan = rules.kongBloomFan ?? 1;
     fanItems.push({
       id: 'kong_bloom',
@@ -161,7 +161,7 @@ export function calculateMahjongScore(
     });
   }
 
-  if (winningConditions.isRobbingKong) {
+  if ((rules.enableRobbingKong ?? true) && winningConditions.isRobbingKong) {
     const robbingKongFan = rules.robbingKongFan ?? 1;
     fanItems.push({
       id: 'robbing_kong',
@@ -174,7 +174,7 @@ export function calculateMahjongScore(
     });
   }
 
-  if (winningConditions.isLastTileDraw) {
+  if ((rules.enableLastTile ?? true) && winningConditions.isLastTileDraw) {
     const lastTileFan = rules.lastTileFan ?? 1;
     fanItems.push({
       id: 'last_tile_draw',
@@ -187,7 +187,7 @@ export function calculateMahjongScore(
     });
   }
 
-  if (winningConditions.isLastTileDiscard) {
+  if ((rules.enableLastTile ?? true) && winningConditions.isLastTileDiscard) {
     const lastTileFan = rules.lastTileFan ?? 1;
     fanItems.push({
       id: 'last_tile_discard',
@@ -295,7 +295,7 @@ export function calculateMahjongScore(
   }
 
   // 抓齐四兽 (4 animals)
-  if (animals.length === 4) {
+  if ((rules.enableAllAnimals ?? true) && animals.length === 4) {
     fanItems.push({
       id: 'all_animals',
       nameZh: '齐抓四兽 (大满贯)',
@@ -324,7 +324,7 @@ export function calculateMahjongScore(
   const seasons = flowers.filter(f => ['flower_chun', 'flower_xia', 'flower_qiu', 'flower_dong'].includes(f.id));
   const plants = flowers.filter(f => ['flower_mei', 'flower_lan', 'flower_zhu', 'flower_ju'].includes(f.id));
 
-  if (seasons.length === 4) {
+  if ((rules.enableFlowerSet ?? true) && seasons.length === 4) {
     fanItems.push({
       id: 'set_seasons',
       nameZh: '一套花 (四季：春夏秋冬)',
@@ -336,7 +336,7 @@ export function calculateMahjongScore(
     });
   }
 
-  if (plants.length === 4) {
+  if ((rules.enableFlowerSet ?? true) && plants.length === 4) {
     fanItems.push({
       id: 'set_plants',
       nameZh: '一套花 (四君子：梅兰竹菊)',
@@ -362,7 +362,7 @@ export function calculateMahjongScore(
   const fullFlushFan = rules.fullFlushFan ?? 4;
   const halfFlushFan = rules.halfFlushFan ?? 2;
 
-  if (hasOnlyTong && tongTiles.length >= 8) {
+  if ((rules.enableFullFlush ?? true) && hasOnlyTong && tongTiles.length >= 8) {
     handPatternZh = '清一色 (全色)';
     handPatternEn = 'Full Flush (Pure Dots)';
     fanItems.push({
@@ -374,7 +374,7 @@ export function calculateMahjongScore(
       descriptionEn: `Entire hand consists solely of dots (+${fullFlushFan} Fan).`,
       category: 'suit',
     });
-  } else if (hasTongAndHonors) {
+  } else if ((rules.enableHalfFlush ?? true) && hasTongAndHonors) {
     handPatternZh = '混一色 (半色)';
     handPatternEn = 'Half Flush';
     fanItems.push({
@@ -390,7 +390,7 @@ export function calculateMahjongScore(
 
   // 十三幺 (Thirteen Orphans - 门清特殊牌型)
   const nonFeiHandTiles = handTiles.filter(t => t.category !== 'fei');
-  if (melds.length === 0 && checkThirteenOrphans(nonFeiHandTiles, feiInHandCount)) {
+  if ((rules.enableThirteenOrphans ?? true) && melds.length === 0 && checkThirteenOrphans(nonFeiHandTiles, feiInHandCount)) {
     const thirteenOrphansFan = rules.thirteenOrphansFan ?? 10;
     fanItems.push({
       id: 'thirteen_orphans',
@@ -406,7 +406,7 @@ export function calculateMahjongScore(
   }
 
   // 七对子 (Seven Pairs - 门清特殊牌型)
-  if (melds.length === 0 && checkSevenPairs(nonFeiHandTiles, feiInHandCount)) {
+  if ((rules.enableSevenPairs ?? true) && melds.length === 0 && checkSevenPairs(nonFeiHandTiles, feiInHandCount)) {
     const sevenPairsFan = rules.sevenPairsFan ?? 5;
     fanItems.push({
       id: 'seven_pairs',
@@ -427,7 +427,7 @@ export function calculateMahjongScore(
   const hasChow = melds.some(m => m.type === 'chow');
   const isAllPongs = checkIsAllPongs(allHandTiles, melds) || (!hasChow && melds.length >= 2);
   const allPongsFan = rules.allPongsFan ?? 2;
-  if (isAllPongs) {
+  if ((rules.enableAllPongs ?? true) && isAllPongs) {
     fanItems.push({
       id: 'all_pongs',
       nameZh: '碰碰胡 (对对胡)',
@@ -454,7 +454,7 @@ export function calculateMahjongScore(
   const bigThreeDragonsFan = rules.bigThreeDragonsFan ?? 5;
   const smallThreeDragonsFan = rules.smallThreeDragonsFan ?? 3;
 
-  if (dragonTriplets === 3) {
+  if ((rules.enableBigThreeDragons ?? true) && dragonTriplets === 3) {
     fanItems.push({
       id: 'big_three_dragons',
       nameZh: '大三元',
@@ -465,7 +465,7 @@ export function calculateMahjongScore(
       category: 'special',
     });
     handPatternZh = '大三元';
-  } else if (dragonTriplets === 2 && dragonPairs === 3) {
+  } else if ((rules.enableSmallThreeDragons ?? true) && dragonTriplets === 2 && dragonPairs === 3) {
     fanItems.push({
       id: 'little_three_dragons',
       nameZh: '小三元',
@@ -523,7 +523,7 @@ export function calculateMahjongScore(
   const has1to9Tong = [1, 2, 3, 4, 5, 6, 7, 8, 9].every(v =>
     allGameTiles.some(t => t.category === 'tong' && t.value === v)
   );
-  if (has1to9Tong) {
+  if ((rules.enablePureStraight ?? true) && has1to9Tong) {
     fanItems.push({
       id: 'one_dragon',
       nameZh: '一条龙 (纯筒龙)',

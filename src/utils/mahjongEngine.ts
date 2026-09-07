@@ -148,7 +148,15 @@ function canFormMelds(counts: Map<number, number>, feiCount: number, neededMelds
 /**
  * 检验一手牌是否已胡牌 (考虑立牌 + 副露 + 飞牌)
  */
-export function checkIsWin(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+export function checkIsWin(
+  handTiles: MahjongTileData[],
+  melds: Meld[],
+  rules?: {
+    enableFourFeiWin?: boolean;
+    enableThirteenOrphans?: boolean;
+    enableSevenPairs?: boolean;
+  }
+): boolean {
   // 过滤出普通手牌与飞牌 (花牌和动物不计入14张手牌)
   const regularTiles: MahjongTileData[] = [];
   let feiCount = 0;
@@ -162,7 +170,7 @@ export function checkIsWin(handTiles: MahjongTileData[], melds: Meld[]): boolean
   }
 
   // 大马三人麻将特殊规则：手握 4 张飞牌 (满天飞 / 全飞) 直接胡牌！
-  if (feiCount >= 4) {
+  if (rules?.enableFourFeiWin !== false && feiCount >= 4) {
     return true;
   }
 
@@ -176,12 +184,12 @@ export function checkIsWin(handTiles: MahjongTileData[], melds: Meld[]): boolean
   }
 
   // 1. 检查特殊牌型：拉飞十三幺 (1筒、9筒、东南西北、中发白 + 飞 + 1对子)
-  if (melds.length === 0 && checkThirteenOrphans(regularTiles, feiCount)) {
+  if (rules?.enableThirteenOrphans !== false && melds.length === 0 && checkThirteenOrphans(regularTiles, feiCount)) {
     return true;
   }
 
   // 2. 检查特殊牌型：七对子 (7 pairs)
-  if (melds.length === 0 && checkSevenPairs(regularTiles, feiCount)) {
+  if (rules?.enableSevenPairs !== false && melds.length === 0 && checkSevenPairs(regularTiles, feiCount)) {
     return true;
   }
 

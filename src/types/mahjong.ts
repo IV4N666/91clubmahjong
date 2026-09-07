@@ -83,6 +83,24 @@ export interface RuleSettings {
   robbingKongFan: number; // 抢杠 番数，默认 1 番
   lastTileFan: number; // 海底捞月/捞沙 番数，默认 1 番
   animalBiteFan: number; // 动物咬到番数，默认 1 番
+  // 玩法开关：勾选/取消勾选玩不玩该牌型或规则 (Tick / Untick)
+  enableHalfFlush?: boolean; // 混一色开关
+  enableFullFlush?: boolean; // 清一色开关
+  enableAllPongs?: boolean; // 碰碰胡开关
+  enablePureStraight?: boolean; // 一条龙开关
+  enableSmallThreeDragons?: boolean; // 小三元开关
+  enableBigThreeDragons?: boolean; // 大三元开关
+  enableSevenPairs?: boolean; // 七对子开关
+  enableThirteenOrphans?: boolean; // 十三幺开关
+  enableMenqing?: boolean; // 门清开关
+  enableZimoBonus?: boolean; // 自摸额外加番开关
+  enableKongBloom?: boolean; // 杠上开花开关
+  enableRobbingKong?: boolean; // 抢杠开关
+  enableLastTile?: boolean; // 海底捞月/捞沙开关
+  enableFlowerSet?: boolean; // 一套花开关
+  enableAllAnimals?: boolean; // 齐抓四兽开关
+  enableNoFeiBonus?: boolean; // 无飞(清飞)加番开关
+  enableFourFeiWin?: boolean; // 4飞满天飞胡牌开关
 }
 
 export interface CalculationResult {

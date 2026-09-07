@@ -89,27 +89,60 @@ export const BeginnerHelper: React.FC<BeginnerHelperProps> = ({
           {/* 2. 听牌叫胡提示 (13张牌时) */}
           {analysis.isTing && analysis.waitingTiles.length > 0 && (
             <div className="bg-emerald-950/90 border border-amber-500/40 rounded-xl p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-                <Crosshair className="w-4 h-4" />
-                <span>{lang === 'zh' ? '🎯 叫胡目标（摸到或别家打出这几张即可胡牌）：' : 'Waiting Tiles to Win:'}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                  <Crosshair className="w-4 h-4" />
+                  <span>{lang === 'zh' ? '🎯 叫胡目标（摸到或别家打出这几张即可胡牌）：' : 'Waiting Tiles to Win:'}</span>
+                </div>
+                {analysis.waitingTiles.some(w => w.isDeadWait) && (
+                  <span className="bg-rose-900/80 text-rose-200 border border-rose-500 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-rose-400" />
+                    {lang === 'zh' ? '注意：叫胡包含绝张！' : 'Warning: Dead waits detected!'}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 {analysis.waitingTiles.map((wait, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 bg-[#0c2e1c] border border-emerald-700/80 rounded-xl px-2.5 py-1.5 shadow"
+                    className={`
+                      flex items-center gap-2 rounded-xl px-2.5 py-1.5 shadow transition-all border
+                      ${
+                        wait.isDeadWait
+                          ? 'bg-rose-950/70 border-rose-600/90 ring-1 ring-rose-500/50'
+                          : 'bg-[#0c2e1c] border-emerald-700/80'
+                      }
+                    `}
                   >
-                    <MahjongTile tile={wait.tile} size="sm" highlight />
+                    <MahjongTile
+                      tile={wait.tile}
+                      size="sm"
+                      highlight={!wait.isDeadWait}
+                      disabled={wait.isDeadWait}
+                    />
                     <div>
-                      <div className="font-bold text-emerald-100 text-xs">
-                        {wait.tile.nameZh}
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-emerald-100 text-xs">
+                          {wait.tile.nameZh}
+                        </span>
+                        {wait.isDeadWait ? (
+                          <span className="bg-rose-600 text-white text-[9px] font-black px-1 py-0.2 rounded animate-pulse">
+                            {lang === 'zh' ? '绝张0张' : 'DEAD WAIT'}
+                          </span>
+                        ) : (
+                          <span className="bg-teal-700/80 text-teal-100 text-[9px] font-bold px-1 py-0.2 rounded">
+                            {lang === 'zh' ? `剩 ${wait.remainingCount} 张` : `${wait.remainingCount} left`}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-amber-300">
                         {lang === 'zh' ? `预估 ${wait.potentialFan} 番起` : `~${wait.potentialFan} Fan`}
                       </div>
                       <div className="text-[10px] text-emerald-400">
-                        {lang === 'zh' ? `牌池约剩 ${wait.remainingCount} 张` : `~${wait.remainingCount} left`}
+                        {wait.inPoolCount > 0
+                          ? (lang === 'zh' ? `桌面已出 ${wait.inPoolCount} 张` : `Pool: ${wait.inPoolCount} seen`)
+                          : (lang === 'zh' ? '桌面尚未见出' : 'None in pool')}
                       </div>
                     </div>
                   </div>
@@ -135,7 +168,9 @@ export const BeginnerHelper: React.FC<BeginnerHelperProps> = ({
                       className={`
                         flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer
                         ${
-                          sug.isRecommended
+                          sug.hasDeadWaits
+                            ? 'bg-rose-950/40 border-rose-800/80 hover:bg-rose-900/40'
+                            : sug.isRecommended
                             ? 'bg-gradient-to-r from-amber-950/80 to-emerald-950/90 border-amber-400/60 shadow-md ring-1 ring-amber-400/30'
                             : 'bg-emerald-950/60 border-emerald-800 hover:bg-emerald-900/60'
                         }
@@ -148,9 +183,14 @@ export const BeginnerHelper: React.FC<BeginnerHelperProps> = ({
                             <span className="font-bold text-emerald-100">
                               {lang === 'zh' ? `打出【${sug.tile.nameZh}】` : `Discard ${sug.tile.nameEn}`}
                             </span>
-                            {sug.isRecommended && (
+                            {sug.isRecommended && !sug.hasDeadWaits && (
                               <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded">
                                 ⭐ {lang === 'zh' ? '最优推荐' : 'Best Choice'}
+                              </span>
+                            )}
+                            {sug.hasDeadWaits && (
+                              <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded">
+                                ⚠️ {lang === 'zh' ? '含绝张' : 'Dead Wait'}
                               </span>
                             )}
                           </div>
@@ -166,9 +206,11 @@ export const BeginnerHelper: React.FC<BeginnerHelperProps> = ({
                             ? (lang === 'zh' ? '直接进听' : 'Enters Ting')
                             : (lang === 'zh' ? '一向听' : '1-away')}
                         </span>
-                        {sug.waitingTilesCount > 0 && (
-                          <span className="text-[10px] text-emerald-400 block">
-                            {sug.waitingTilesCount} {lang === 'zh' ? '张机会' : 'outs'}
+                        {sug.waitingTilesCount !== undefined && (
+                          <span className={`text-[10px] font-bold block ${sug.waitingTilesCount === 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {sug.waitingTilesCount === 0
+                              ? (lang === 'zh' ? '0 张 (绝张)' : '0 outs (dead)')
+                              : `${sug.waitingTilesCount} ${lang === 'zh' ? '张机会' : 'outs'}`}
                           </span>
                         )}
                       </div>

@@ -44,6 +44,33 @@ class SoundEffects {
     }
   }
 
+  // 弃牌/打出牌落桌声 (低沉清脆碰撞声)
+  public playDiscard(): void {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(480, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.09);
+
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    } catch {
+      // ignore
+    }
+  }
+
   // 碰/吃/杠音效
   public playMeld(): void {
     if (!this.enabled) return;

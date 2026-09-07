@@ -83,7 +83,9 @@ export interface CalculationResult {
 export interface WaitingTileInfo {
   tile: MahjongTileData;
   potentialFan: number;
-  remainingCount: number; // 基于已知公开牌推测剩余张数
+  remainingCount: number; // 基于手牌与牌池计算真实剩余张数
+  inPoolCount: number; // 牌池中已打出的张数
+  isDeadWait: boolean; // 是否是绝张 (剩余0张)
   winReasonZh: string;
 }
 
@@ -94,6 +96,7 @@ export interface DiscardSuggestion {
   waitingTilesCount: number; // 进张牌总张数
   potentialWaitingTiles: MahjongTileData[];
   expectedFan: number;
+  hasDeadWaits?: boolean;
   reasonZh: string;
   reasonEn: string;
   isRecommended: boolean;

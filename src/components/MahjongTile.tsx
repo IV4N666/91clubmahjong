@@ -169,7 +169,7 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
 
         {/* 角标 (如张数、咬到标记) */}
         {badge !== undefined && (
-          <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-md border border-white">
+          <span className="absolute -top-2 -right-2 bg-amber-500 text-slate-950 font-black text-[9px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow-md border border-white leading-none z-10">
             {badge}
           </span>
         )}

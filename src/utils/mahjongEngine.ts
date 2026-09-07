@@ -354,9 +354,13 @@ export function estimateShanten(handTiles: MahjongTileData[], melds: Meld[]): nu
 }
 
 /**
- * 新手出牌建议引擎 (14张牌时推荐打哪张)
+ * 新手出牌建议引擎 (14张牌时推荐打哪张，结合牌池剩余张数精准分析)
  */
-export function analyzeDiscards(handTiles: MahjongTileData[], melds: Meld[]): DiscardSuggestion[] {
+export function analyzeDiscards(
+  handTiles: MahjongTileData[],
+  melds: Meld[],
+  discardPool: MahjongTileData[] = []
+): DiscardSuggestion[] {
   if (handTiles.length !== 14) return [];
 
   const suggestions: DiscardSuggestion[] = [];
@@ -392,12 +396,22 @@ export function analyzeDiscards(handTiles: MahjongTileData[], melds: Meld[]): Di
 
     if (waitingTiles.length > 0) {
       // 打掉此牌后直接进入【听牌】！
-      // 估算进张数量 (通常每种牌 4 张，扣除自己手里已有的)
+      // 结合手牌、副露、以及公开牌池计算精准的真实剩余张数 (真实 outs)
       let totalOuts = 0;
+      let inPoolTotal = 0;
+
       for (const w of waitingTiles) {
         const inHandCount = handAfterDiscard.filter(t => t.id === w.id).length;
-        totalOuts += Math.max(0, 4 - inHandCount);
+        let inMeldsCount = 0;
+        melds.forEach(m => m.tiles.forEach(t => { if (t.id === w.id) inMeldsCount++; }));
+        const inPoolCount = discardPool.filter(t => t.id === w.id).length;
+
+        inPoolTotal += inPoolCount;
+        const remainingForThis = Math.max(0, 4 - (inHandCount + inMeldsCount + inPoolCount));
+        totalOuts += remainingForThis;
       }
+
+      const isAllDead = totalOuts === 0;
 
       suggestions.push({
         tile,
@@ -405,9 +419,14 @@ export function analyzeDiscards(handTiles: MahjongTileData[], melds: Meld[]): Di
         shantenAfter: 0,
         waitingTilesCount: totalOuts,
         potentialWaitingTiles: waitingTiles,
-        expectedFan: 6, // 预估基准
-        reasonZh: `打出后立即进入听牌！叫胡【${waitingTiles.map(w => w.nameZh).join('、')}】，共约 ${totalOuts} 张机会！`,
-        reasonEn: `Ting ready! Waiting for: ${waitingTiles.map(w => w.nameEn).join(', ')} (${totalOuts} outs).`,
+        expectedFan: 6,
+        hasDeadWaits: isAllDead,
+        reasonZh: isAllDead
+          ? `打出后虽叫胡【${waitingTiles.map(w => w.nameZh).join('、')}】，但桌面上已见光（绝张 0 张）！不建议打出！`
+          : `打出后直接进听！叫胡【${waitingTiles.map(w => w.nameZh).join('、')}】，牌池已见 ${inPoolTotal} 张，还剩 ${totalOuts} 张机会！`,
+        reasonEn: isAllDead
+          ? `Waiting for ${waitingTiles.map(w => w.nameEn).join(', ')}, but 0 remain (dead wait)!`
+          : `Ting ready! Waiting for: ${waitingTiles.map(w => w.nameEn).join(', ')} (${totalOuts} live outs left).`,
         isRecommended: false,
       });
     } else {
@@ -455,9 +474,13 @@ export function analyzeDiscards(handTiles: MahjongTileData[], melds: Meld[]): Di
 }
 
 /**
- * 综合分析新手手牌状态
+ * 综合分析新手手牌状态 (接入桌面公开弃牌池数据)
  */
-export function getFullShantenAnalysis(handTiles: MahjongTileData[], melds: Meld[]): ShantenAnalysis {
+export function getFullShantenAnalysis(
+  handTiles: MahjongTileData[],
+  melds: Meld[],
+  discardPool: MahjongTileData[] = []
+): ShantenAnalysis {
   const isWin = checkIsWin(handTiles, melds);
   if (isWin) {
     return {
@@ -474,13 +497,23 @@ export function getFullShantenAnalysis(handTiles: MahjongTileData[], melds: Meld
     const waits = findWaitingTiles(handTiles, melds);
     const waitingInfo: WaitingTileInfo[] = waits.map(tile => {
       const inHand = handTiles.filter(t => t.id === tile.id).length;
+      let inMelds = 0;
+      melds.forEach(m => m.tiles.forEach(t => { if (t.id === tile.id) inMelds++; }));
+      const inPool = discardPool.filter(t => t.id === tile.id).length;
+      const remaining = Math.max(0, 4 - (inHand + inMelds + inPool));
+
       return {
         tile,
         potentialFan: 5,
-        remainingCount: Math.max(0, 4 - inHand),
-        winReasonZh: `胡【${tile.nameZh}】`,
+        remainingCount: remaining,
+        inPoolCount: inPool,
+        isDeadWait: remaining === 0,
+        winReasonZh: remaining === 0 ? `胡【${tile.nameZh}】(⚠️已见光 绝张！)` : `胡【${tile.nameZh}】(外剩${remaining}张)`,
       };
     });
+
+    const allDead = waitingInfo.length > 0 && waitingInfo.every(w => w.isDeadWait);
+    const totalRemaining = waitingInfo.reduce((sum, w) => sum + w.remainingCount, 0);
 
     return {
       currentShanten: waits.length > 0 ? 0 : 1,
@@ -488,16 +521,18 @@ export function getFullShantenAnalysis(handTiles: MahjongTileData[], melds: Meld
       waitingTiles: waitingInfo,
       discardSuggestions: [],
       statusMessageZh: waits.length > 0
-        ? `您正在听牌！在等【${waits.map(w => w.nameZh).join('、')}】胡牌！`
+        ? (allDead
+            ? `⚠️ 正在听牌，但叫胡的牌在桌面已全部出光（绝张 0 张）！请尽快换听！`
+            : `您正在听牌！叫胡【${waits.map(w => w.nameZh).join('、')}】，桌面外还剩约 ${totalRemaining} 张机会！`)
         : '当前手牌暂未听牌，建议摸牌后参考出牌建议。',
       statusMessageEn: waits.length > 0
-        ? `You are ready to win (Ting)! Waiting for ${waits.map(w => w.nameEn).join(', ')}.`
+        ? `You are in Ting! Waiting for ${waits.map(w => w.nameEn).join(', ')} (${totalRemaining} outs remaining).`
         : 'Not yet in Ting.',
     };
   }
 
   if (handTiles.length === 14) {
-    const discards = analyzeDiscards(handTiles, melds);
+    const discards = analyzeDiscards(handTiles, melds, discardPool);
     const best = discards[0];
     return {
       currentShanten: best ? best.shantenAfter : 2,
@@ -505,7 +540,9 @@ export function getFullShantenAnalysis(handTiles: MahjongTileData[], melds: Meld
       waitingTiles: [],
       discardSuggestions: discards,
       statusMessageZh: best && best.shantenAfter === 0
-        ? `建议打出【${best.tile.nameZh}】，打出后即可听牌！`
+        ? (best.hasDeadWaits
+            ? `提示：虽然打出【${best.tile.nameZh}】能听牌，但叫胡的牌已见绝张！请参考其他舍牌！`
+            : `建议打出【${best.tile.nameZh}】，打出后即可听牌！`)
         : '请查看下方推荐舍牌，选最佳路径胡牌。',
       statusMessageEn: best && best.shantenAfter === 0
         ? `Recommended: Discard ${best.tile.nameEn} to enter Ting!`

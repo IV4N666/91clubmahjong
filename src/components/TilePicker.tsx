@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   MahjongTileData,
+  Meld,
   MeldType,
 } from '../types/mahjong';
 import {
@@ -20,8 +21,11 @@ interface TilePickerProps {
   onAddTile: (tile: MahjongTileData) => void;
   onAddMeld: (type: MeldType, tiles: MahjongTileData[]) => void;
   onAddFlower: (tile: MahjongTileData) => void;
+  onAddDiscardTile?: (tile: MahjongTileData) => void;
   handTiles: MahjongTileData[];
   flowers: MahjongTileData[];
+  melds?: Meld[];
+  discardPool?: MahjongTileData[];
   lang: 'zh' | 'en';
 }
 
@@ -31,25 +35,53 @@ export const TilePicker: React.FC<TilePickerProps> = ({
   onAddTile,
   onAddMeld,
   onAddFlower,
+  onAddDiscardTile,
   handTiles,
   flowers,
+  melds = [],
+  discardPool = [],
   lang,
 }) => {
   const [activeTab, setActiveTab] = useState<PickerTab>('tong');
+  const [targetMode, setTargetMode] = useState<'hand' | 'pool'>('hand');
 
-  // 计算某张牌已使用了多少张 (标准一副牌只有 4 张，花牌动物各 1 张)
-  const getUsedCount = (tileId: string): number => {
-    let count = 0;
-    handTiles.forEach(t => {
-      if (t.id === tileId) count++;
-    });
-    flowers.forEach(f => {
-      if (f.id === tileId) count++;
-    });
-    return count;
+  // 计算某张牌在手牌、副露、花牌和弃牌池中的综合使用情况
+  const getTileStats = (tileId: string) => {
+    let inHand = 0;
+    handTiles.forEach(t => { if (t.id === tileId) inHand++; });
+    flowers.forEach(f => { if (f.id === tileId) inHand++; });
+
+    let inMelds = 0;
+    melds.forEach((m: Meld) => m.tiles.forEach((t: MahjongTileData) => { if (t.id === tileId) inMelds++; }));
+
+    let inPool = 0;
+    discardPool.forEach(p => { if (p.id === tileId) inPool++; });
+
+    const totalSeen = inHand + inMelds + inPool;
+    const remaining = Math.max(0, 4 - totalSeen);
+    const isDead = remaining === 0;
+
+    return { inHand, inMelds, inPool, totalSeen, remaining, isDead };
   };
 
   const handleTileClick = (tile: MahjongTileData) => {
+    if (targetMode === 'pool') {
+      if (tile.category === 'flower' || tile.category === 'animal') {
+        alert(lang === 'zh' ? '花牌与动物牌摸到即补花展示，不打入公共弃牌池！' : 'Flowers and animals are kept, not discarded.');
+        return;
+      }
+      const stats = getTileStats(tile.id);
+      if (stats.totalSeen >= 4) {
+        alert(lang === 'zh' ? `【${tile.nameZh}】已见4张，无法再打出！` : `All 4 ${tile.nameEn} already seen!`);
+        return;
+      }
+      soundFx.playDiscard();
+      if (onAddDiscardTile) {
+        onAddDiscardTile(tile);
+      }
+      return;
+    }
+
     if (tile.category === 'flower' || tile.category === 'animal') {
       onAddFlower(tile);
     } else {
@@ -80,7 +112,52 @@ export const TilePicker: React.FC<TilePickerProps> = ({
   };
 
   return (
-    <div className="bg-[#114028] border border-emerald-700/60 rounded-2xl p-3 sm:p-5 shadow-xl space-y-3">
+    <div className={`border rounded-2xl p-3 sm:p-5 shadow-xl space-y-3 transition-colors ${
+      targetMode === 'pool'
+        ? 'bg-[#0b2b25] border-teal-500/70 ring-1 ring-teal-500/30'
+        : 'bg-[#114028] border-emerald-700/60'
+    }`}>
+      {/* 操作目标模式切换 (加入手牌 vs 记入公共弃牌池) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-[#061c12] rounded-xl border border-emerald-800">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-emerald-200">
+            {lang === 'zh' ? '选牌去向：' : 'Target:'}
+          </span>
+          <div className="flex items-center gap-1 bg-[#092b1b] p-0.5 rounded-lg border border-emerald-700/60 text-xs">
+            <button
+              type="button"
+              onClick={() => setTargetMode('hand')}
+              className={`px-3 py-1 rounded-md font-bold transition flex items-center gap-1.5 ${
+                targetMode === 'hand'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-emerald-300 hover:text-white'
+              }`}
+            >
+              <span>🀄</span>
+              <span>{lang === 'zh' ? '加入手牌' : 'Add to Hand'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetMode('pool')}
+              className={`px-3 py-1 rounded-md font-bold transition flex items-center gap-1.5 ${
+                targetMode === 'pool'
+                  ? 'bg-teal-500 text-slate-950 shadow-md'
+                  : 'text-teal-300 hover:text-white'
+              }`}
+            >
+              <span>🌊</span>
+              <span>{lang === 'zh' ? '记入公共弃牌池 (别人/自己出牌)' : 'Add to Discard Pool'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-emerald-300/80">
+          {targetMode === 'hand'
+            ? (lang === 'zh' ? '💡 点击牌面直接放进你的手牌' : 'Click to add to your hand')
+            : (lang === 'zh' ? '🌊 点击牌面记入桌面弃牌池，自动扣减剩余张数' : 'Click to add to public table discards')}
+        </div>
+      </div>
+
       {/* 选牌选项卡 Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-800/80 pb-2">
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -156,14 +233,20 @@ export const TilePicker: React.FC<TilePickerProps> = ({
         {activeTab === 'tong' && (
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 py-1">
             {TONG_TILES.map((t) => {
-              const used = getUsedCount(t.id);
+              const stats = getTileStats(t.id);
+              const badge = stats.isDead
+                ? '绝'
+                : targetMode === 'pool'
+                ? (stats.inPool > 0 ? `池${stats.inPool}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined))
+                : (stats.inHand > 0 ? `手${stats.inHand}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined));
               return (
                 <MahjongTile
                   key={t.id}
                   tile={t}
                   size="md"
-                  badge={used > 0 ? `${used}/4` : undefined}
-                  disabled={used >= 4}
+                  badge={badge}
+                  disabled={stats.totalSeen >= 4}
+                  highlight={targetMode === 'pool' ? stats.inPool > 0 : stats.inHand > 0}
                   onClick={() => handleTileClick(t)}
                 />
               );
@@ -175,28 +258,40 @@ export const TilePicker: React.FC<TilePickerProps> = ({
         {activeTab === 'honors' && (
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 py-1">
             {WIND_TILES.map((t) => {
-              const used = getUsedCount(t.id);
+              const stats = getTileStats(t.id);
+              const badge = stats.isDead
+                ? '绝'
+                : targetMode === 'pool'
+                ? (stats.inPool > 0 ? `池${stats.inPool}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined))
+                : (stats.inHand > 0 ? `手${stats.inHand}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined));
               return (
                 <MahjongTile
                   key={t.id}
                   tile={t}
                   size="md"
-                  badge={used > 0 ? `${used}/4` : undefined}
-                  disabled={used >= 4}
+                  badge={badge}
+                  disabled={stats.totalSeen >= 4}
+                  highlight={targetMode === 'pool' ? stats.inPool > 0 : stats.inHand > 0}
                   onClick={() => handleTileClick(t)}
                 />
               );
             })}
             <div className="w-px h-12 bg-emerald-700/60 mx-1 hidden sm:block" />
             {DRAGON_TILES.map((t) => {
-              const used = getUsedCount(t.id);
+              const stats = getTileStats(t.id);
+              const badge = stats.isDead
+                ? '绝'
+                : targetMode === 'pool'
+                ? (stats.inPool > 0 ? `池${stats.inPool}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined))
+                : (stats.inHand > 0 ? `手${stats.inHand}` : (stats.remaining < 4 ? `剩${stats.remaining}` : undefined));
               return (
                 <MahjongTile
                   key={t.id}
                   tile={t}
                   size="md"
-                  badge={used > 0 ? `${used}/4` : undefined}
-                  disabled={used >= 4}
+                  badge={badge}
+                  disabled={stats.totalSeen >= 4}
+                  highlight={targetMode === 'pool' ? stats.inPool > 0 : stats.inHand > 0}
                   onClick={() => handleTileClick(t)}
                 />
               );
@@ -209,8 +304,8 @@ export const TilePicker: React.FC<TilePickerProps> = ({
           <div className="flex flex-col items-center gap-3 py-1 text-center">
             <div className="flex items-center gap-3">
               {FEI_TILES.map((t, idx) => {
-                const used = getUsedCount('fei_1') + getUsedCount('fei_2') + getUsedCount('fei_3') + getUsedCount('fei_4');
-                const isThisUsed = idx < used;
+                const totalFeiUsed = handTiles.filter(tile => tile.category === 'fei').length;
+                const isThisUsed = idx < totalFeiUsed;
                 return (
                   <MahjongTile
                     key={t.id}
@@ -241,7 +336,7 @@ export const TilePicker: React.FC<TilePickerProps> = ({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {ANIMAL_TILES.map((t) => {
-                  const used = getUsedCount(t.id);
+                  const used = getTileStats(t.id).inHand;
                   return (
                     <div key={t.id} className="flex flex-col items-center">
                       <MahjongTile
@@ -269,7 +364,7 @@ export const TilePicker: React.FC<TilePickerProps> = ({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {FLOWER_TILES.map((t) => {
-                  const used = getUsedCount(t.id);
+                  const used = getTileStats(t.id).inHand;
                   return (
                     <MahjongTile
                       key={t.id}

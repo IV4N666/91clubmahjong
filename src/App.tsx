@@ -25,6 +25,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { RulesGuideModal } from './components/RulesGuideModal';
 import { HistoryModal } from './components/HistoryModal';
 import { QRCodeModal } from './components/QRCodeModal';
+import { DiscardPool } from './components/DiscardPool';
 
 const DEFAULT_PLAYERS: Player[] = [
   { id: 'p1', name: '玩家 1 (我)', seat: 'east' },
@@ -82,10 +83,21 @@ export const App: React.FC = () => {
 
   const [roundRecorded, setRoundRecorded] = useState(false);
 
-  // 3. 当前牌局手牌数据
+  // 3. 当前牌局手牌与弃牌池数据
   const [handTiles, setHandTiles] = useState<MahjongTileData[]>([]);
   const [melds, setMelds] = useState<Meld[]>([]);
   const [flowers, setFlowers] = useState<MahjongTileData[]>([]);
+  const [discardPool, setDiscardPool] = useState<MahjongTileData[]>(() => {
+    const saved = localStorage.getItem('mahjong_discard_pool');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // ignore
+      }
+    }
+    return [];
+  });
 
   // 4. 胡牌条件
   const [winningConditions, setWinningConditions] = useState<WinningConditions>({
@@ -124,6 +136,11 @@ export const App: React.FC = () => {
     localStorage.setItem('mahjong_rounds', JSON.stringify(rounds));
   }, [rounds]);
 
+  // 同步公共弃牌池
+  useEffect(() => {
+    localStorage.setItem('mahjong_discard_pool', JSON.stringify(discardPool));
+  }, [discardPool]);
+
   // 同步语言
   const handleToggleLang = () => {
     const next = lang === 'zh' ? 'en' : 'zh';
@@ -147,12 +164,29 @@ export const App: React.FC = () => {
     return handTiles.length + melds.length * 3;
   }, [handTiles, melds]);
 
-  // 实时分析向听数与新手指导
+  // 实时分析向听数与新手指导 (结合手牌与公共弃牌池精准计算真实剩余 outs)
   const shantenAnalysis = useMemo(() => {
-    return getFullShantenAnalysis(handTiles, melds);
-  }, [handTiles, melds]);
+    return getFullShantenAnalysis(handTiles, melds, discardPool);
+  }, [handTiles, melds, discardPool]);
 
   const isWinReady = shantenAnalysis.currentShanten === -1;
+
+  // 公共出牌池操作
+  const handleAddDiscardTile = (tile: MahjongTileData) => {
+    setDiscardPool(prev => [...prev, tile]);
+  };
+
+  const handleRemoveDiscardTile = (index: number) => {
+    setDiscardPool(prev => {
+      const copy = [...prev];
+      copy.splice(index, 1);
+      return copy;
+    });
+  };
+
+  const handleClearDiscardPool = () => {
+    setDiscardPool([]);
+  };
 
   // 手牌操作：添加单张牌
   const handleAddTile = (tile: MahjongTileData) => {
@@ -322,11 +356,12 @@ export const App: React.FC = () => {
         flowers: ['flower_mei', 'flower_lan', 'flower_zhu'],
         conditions: { isZimo: true, playerSeat: 'south' as const },
       },
-      // 范例 3: 13张听牌状态 (给新手演示听牌分析)
+      // 范例 3: 13张听牌状态 (演示听牌分析与桌面出牌池实时扣减 outs)
       {
         hand: ['tong_1', 'tong_2', 'tong_3', 'tong_4', 'tong_5', 'tong_6', 'dragon_fa', 'dragon_fa', 'dragon_fa', 'wind_south', 'wind_south', 'wind_south', 'tong_8'],
         melds: [],
         flowers: ['animal_rooster', 'animal_centipede'],
+        discards: ['tong_8', 'tong_8', 'tong_3', 'wind_east', 'dragon_zhong'],
         conditions: { isZimo: false, playerSeat: 'west' as const },
       },
     ];
@@ -337,6 +372,7 @@ export const App: React.FC = () => {
     setHandTiles(current.hand.map(id => getTileById(id)));
     setMelds(current.melds);
     setFlowers(current.flowers.map(id => getTileById(id)));
+    setDiscardPool((current.discards || []).map(id => getTileById(id)));
     setWinningConditions(prev => ({
       ...prev,
       isZimo: current.conditions.isZimo,
@@ -385,7 +421,7 @@ export const App: React.FC = () => {
           totalTilesCount={totalRegularTilesCount}
         />
 
-        {/* 2. 新手打牌与听牌指导建议 */}
+        {/* 2. 新手打牌与听牌指导建议 (含真实活张与绝张检测) */}
         <BeginnerHelper
           analysis={shantenAnalysis}
           rules={rules}
@@ -394,17 +430,32 @@ export const App: React.FC = () => {
             const idx = handTiles.findIndex(t => t.id === tile.id);
             if (idx !== -1) {
               handleRemoveHandTile(idx);
+              handleAddDiscardTile(tile); // 打出的牌自动落入桌面公共弃牌池
             }
           }}
         />
 
-        {/* 3. 选牌面板 (筒子、字牌、飞牌、花牌与动物) */}
+        {/* 3. 公共出牌池 (桌面弃牌 / 堂子 - 记录所有打出牌与绝张分析) */}
+        <DiscardPool
+          discardPool={discardPool}
+          onAddDiscardTile={handleAddDiscardTile}
+          onRemoveDiscardTile={handleRemoveDiscardTile}
+          onClearDiscardPool={handleClearDiscardPool}
+          handTiles={handTiles}
+          melds={melds}
+          lang={lang}
+        />
+
+        {/* 4. 选牌面板 (支持加入手牌 or 记入公共出牌池) */}
         <TilePicker
           onAddTile={handleAddTile}
           onAddMeld={handleAddMeld}
           onAddFlower={handleAddFlower}
+          onAddDiscardTile={handleAddDiscardTile}
           handTiles={handTiles}
           flowers={flowers}
+          melds={melds}
+          discardPool={discardPool}
           lang={lang}
         />
       </main>

@@ -66,6 +66,11 @@ export interface RuleSettings {
   // 开杠即时收钱：开杠立刻收取 N 番价值的现金 (例如底价 0.20 收 2 番 = 0.40)
   enableKongImmediateCash: boolean;
   kongImmediateFan: number; // 开杠收取的番数，默认 2 番
+  // 自定义核心牌型番数 (混一色、清一色、门清、动物咬到)
+  halfFlushFan: number; // 混一色 (半色) 番数，默认 2 番
+  fullFlushFan: number; // 清一色 (全色) 番数，默认 4 番
+  menqingFan: number; // 门清番数，默认 1 番 (0 表示不算门清)
+  animalBiteFan: number; // 动物咬到番数，默认 1 番
 }
 
 export interface CalculationResult {

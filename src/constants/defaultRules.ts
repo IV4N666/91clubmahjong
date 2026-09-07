@@ -30,6 +30,10 @@ export const DEFAULT_RULES: RuleSettings = {
   feiCashAmount: 0.50, // 默认每张飞牌 RM 0.50 (可自由编辑)
   enableKongImmediateCash: true, // 默认开杠即刻收钱
   kongImmediateFan: 2, // 默认开杠收 2 番的钱 (例如底价 0.20 即收 0.40)
+  halfFlushFan: 2, // 混一色 (半色) 默认 2 番
+  fullFlushFan: 4, // 清一色 (全色) 默认 4 番
+  menqingFan: 1, // 门清 默认 1 番
+  animalBiteFan: 1, // 动物咬到 默认 1 番
 };
 
 // 预设筹码底价供用户一键选择

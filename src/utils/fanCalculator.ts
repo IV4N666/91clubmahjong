@@ -126,14 +126,18 @@ export function calculateMahjongScore(
 
   // 门清 (无副露，或全部暗杠)
   const hasExposedMelds = melds.some(m => m.type !== 'kong_concealed');
-  if (!hasExposedMelds) {
+  const baseMenqingFan = rules.menqingFan ?? 1;
+  if (!hasExposedMelds && baseMenqingFan > 0) {
+    const finalMenqingFan = winningConditions.isZimo ? baseMenqingFan + 1 : baseMenqingFan;
     fanItems.push({
       id: 'menqing',
       nameZh: '门清',
       nameEn: 'All Concealed',
-      fan: winningConditions.isZimo ? 2 : 1,
-      descriptionZh: winningConditions.isZimo ? '门清自摸，胡牌极具威慑力 (+2 番)！' : '全手牌未曾吃碰露面 (+1 番)！',
-      descriptionEn: 'Hand completely concealed without exposed melds.',
+      fan: finalMenqingFan,
+      descriptionZh: winningConditions.isZimo
+        ? `门清自摸，胡牌极具威慑力 (+${finalMenqingFan} 番)！`
+        : `全手牌未曾吃碰露面 (+${finalMenqingFan} 番)！`,
+      descriptionEn: `Hand completely concealed without exposed melds (+${finalMenqingFan} Fan).`,
       category: 'base',
     });
   }
@@ -246,30 +250,38 @@ export function calculateMahjongScore(
   const hasRooster = animals.some(a => a.id === 'animal_rooster');
   const hasCentipede = animals.some(a => a.id === 'animal_centipede');
 
-  if (hasCat && hasRat) {
-    biteCount++;
-    fanItems.push({
-      id: 'bite_cat_rat',
-      nameZh: '猫抓老鼠 (咬到！)',
-      nameEn: 'Cat eats Rat (Bite!)',
-      fan: 1,
-      descriptionZh: '猫遇到老鼠天生一对咬到！加 1 番，且桌上每家需立即给现金红包！',
-      descriptionEn: 'Cat pairs with Rat! +1 Fan and instant cash payout.',
-      category: 'flower',
-    });
-  }
+  // 关键修复：只有在勾选 enableAnimalBiteBonus 规则时，才计算咬到番数和即时现金！
+  if (rules.enableAnimalBiteBonus) {
+    const biteFan = rules.animalBiteFan ?? 1;
+    if (hasCat && hasRat) {
+      biteCount++;
+      if (biteFan > 0) {
+        fanItems.push({
+          id: 'bite_cat_rat',
+          nameZh: '猫抓老鼠 (咬到！)',
+          nameEn: 'Cat eats Rat (Bite!)',
+          fan: biteFan,
+          descriptionZh: `猫遇到老鼠天生一对咬到！加 ${biteFan} 番，且桌上每家需立即给现金红包！`,
+          descriptionEn: `Cat pairs with Rat! +${biteFan} Fan and instant cash payout.`,
+          category: 'flower',
+        });
+      }
+    }
 
-  if (hasRooster && hasCentipede) {
-    biteCount++;
-    fanItems.push({
-      id: 'bite_rooster_centipede',
-      nameZh: '鸡啄蜈蚣 (咬到！)',
-      nameEn: 'Rooster eats Centipede (Bite!)',
-      fan: 1,
-      descriptionZh: '大公鸡啄蜈蚣成双成对！加 1 番，且桌上每家需立即给现金红包！',
-      descriptionEn: 'Rooster pairs with Centipede! +1 Fan and instant cash payout.',
-      category: 'flower',
-    });
+    if (hasRooster && hasCentipede) {
+      biteCount++;
+      if (biteFan > 0) {
+        fanItems.push({
+          id: 'bite_rooster_centipede',
+          nameZh: '鸡啄蜈蚣 (咬到！)',
+          nameEn: 'Rooster eats Centipede (Bite!)',
+          fan: biteFan,
+          descriptionZh: `大公鸡啄蜈蚣成双成对！加 ${biteFan} 番，且桌上每家需立即给现金红包！`,
+          descriptionEn: `Rooster pairs with Centipede! +${biteFan} Fan and instant cash payout.`,
+          category: 'flower',
+        });
+      }
+    }
   }
 
   // 抓齐四兽 (4 animals)
@@ -337,6 +349,9 @@ export function calculateMahjongScore(
   // 混一色 (半色 - 筒子 + 字牌)
   const hasTongAndHonors = tongTiles.length > 0 && (windTiles.length > 0 || dragonTiles.length > 0);
 
+  const fullFlushFan = rules.fullFlushFan ?? 4;
+  const halfFlushFan = rules.halfFlushFan ?? 2;
+
   if (hasOnlyTong && tongTiles.length >= 8) {
     handPatternZh = '清一色 (全色)';
     handPatternEn = 'Full Flush (Pure Dots)';
@@ -344,9 +359,9 @@ export function calculateMahjongScore(
       id: 'full_flush',
       nameZh: '清一色 (全色)',
       nameEn: 'Full Flush',
-      fan: 4,
-      descriptionZh: '整手牌全是纯筒子，无任何字牌！(+4 番)',
-      descriptionEn: 'Entire hand consists solely of dots (+4 Fan).',
+      fan: fullFlushFan,
+      descriptionZh: `整手牌全是纯筒子，无任何字牌！(+${fullFlushFan} 番)`,
+      descriptionEn: `Entire hand consists solely of dots (+${fullFlushFan} Fan).`,
       category: 'suit',
     });
   } else if (hasTongAndHonors) {
@@ -356,9 +371,9 @@ export function calculateMahjongScore(
       id: 'half_flush',
       nameZh: '混一色 (半色)',
       nameEn: 'Half Flush',
-      fan: 2,
-      descriptionZh: '筒子牌搭配东南西北或中发白字牌 (+2 番)。',
-      descriptionEn: 'Dots combined with honors (+2 Fan).',
+      fan: halfFlushFan,
+      descriptionZh: `筒子牌搭配东南西北或中发白字牌 (+${halfFlushFan} 番)。`,
+      descriptionEn: `Dots combined with honors (+${halfFlushFan} Fan).`,
       category: 'suit',
     });
   }

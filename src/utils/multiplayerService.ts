@@ -10,6 +10,7 @@ export interface RoomPeerInfo {
   isReady: boolean;
 }
 
+// 包含 Google STUN 与 OpenRelay 免费公用 TURN 中继服务器，确保移动网络 (4G/5G 对等 NAT) 畅连
 const PEER_CONFIG = {
   debug: 1,
   config: {
@@ -18,6 +19,15 @@ const PEER_CONFIG = {
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:global.stun.twilio.com:3478' },
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp',
+        ],
+        username: 'openrelay',
+        credential: 'openrelay',
+      },
     ],
   },
 };
@@ -27,6 +37,7 @@ export class MultiplayerService {
   private connections: Map<string, DataConnection> = new Map();
   private seatConnections: Map<GameSeatIndex, DataConnection> = new Map();
   private hostConnection: DataConnection | null = null;
+  private eventListeners: Map<string, Set<Function>> = new Map();
 
   public isHost: boolean = false;
   public roomCode: string = '';
@@ -36,9 +47,9 @@ export class MultiplayerService {
   public hostRules: RuleSettings | null = null;
   public roomPlayers: RoomPeerInfo[] = [];
 
-  // 事件回调
+  // 事件回调 (同时支持直接属性赋值与多监听器订阅)
   public onRoomUpdate?: (players: RoomPeerInfo[], rules?: RuleSettings) => void;
-  public onGameStart?: (payload: { players: RoomPeerInfo[]; rules: RuleSettings }) => void;
+  public onGameStart?: (payload: any) => void;
   public onGameStateSync?: (payload: any) => void;
   public onPlayerAction?: (action: { seat: GameSeatIndex; actionType: string; payload?: any }) => void;
   public onRoundOver?: (settlement: any) => void;
@@ -48,6 +59,29 @@ export class MultiplayerService {
 
   constructor() {
     this.myPlayerId = `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  }
+
+  /**
+   * 事件订阅机制，避免组件重新渲染时覆盖回调
+   */
+  public on(event: string, fn: Function): () => void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set());
+    }
+    this.eventListeners.get(event)!.add(fn);
+    return () => {
+      this.eventListeners.get(event)?.delete(fn);
+    };
+  }
+
+  public emit(event: string, ...args: any[]) {
+    this.eventListeners.get(event)?.forEach((fn) => {
+      try {
+        fn(...args);
+      } catch (err) {
+        console.error(`[MultiplayerService] Error in event listener for ${event}:`, err);
+      }
+    });
   }
 
   /**
@@ -70,37 +104,54 @@ export class MultiplayerService {
 
     this.roomPlayers = [
       { seat: 0, name: `${hostName} (房主)`, isHost: true, isAI: false, isReady: true },
-      { seat: 1, name: '等待好友加入...', isHost: false, isAI: true, isReady: false },
-      { seat: 2, name: '等待好友加入...', isHost: false, isAI: true, isReady: false },
+      { seat: 1, name: '等待好友加入...', isHost: false, isAI: false, isReady: false },
+      { seat: 2, name: '电脑 2 (AI)', isHost: false, isAI: true, isReady: true },
     ];
 
     const hostPeerId = this.formatHostPeerId(this.roomCode);
 
     return new Promise((resolve, reject) => {
+      let isResolved = false;
       try {
         if (this.peer) {
           this.peer.destroy();
+          this.peer = null;
         }
 
         this.peer = new Peer(hostPeerId, PEER_CONFIG);
 
-        this.peer.on('open', (id) => {
-          // 监听客端玩家连接
-          this.peer?.on('connection', (conn) => {
-            this.handleIncomingClientConnection(conn);
-          });
-          resolve(id);
+        // 立即挂载客端接入监听
+        this.peer.on('connection', (conn) => {
+          this.handleIncomingClientConnection(conn);
         });
 
-        this.peer.on('error', (err) => {
-          if (err.type === 'unavailable-id') {
-            reject(new Error(`房间号 ${this.roomCode} 正在被使用中，请更换一个号码！`));
+        this.peer.on('open', (id) => {
+          if (!isResolved) {
+            isResolved = true;
+            this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+            this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+            resolve(id);
+          }
+        });
+
+        this.peer.on('error', (err: any) => {
+          if (!isResolved) {
+            isResolved = true;
+            if (err.type === 'unavailable-id') {
+              reject(new Error(`房间号 ${this.roomCode} 正在被使用或刚关闭，请更换一个房间号码！`));
+            } else {
+              reject(new Error(`P2P网络错误 (${err.type || 'network'}): ${err.message}`));
+            }
           } else {
-            reject(new Error(`P2P网络错误: ${err.message}`));
+            this.emit('error', `网络提示: ${err.message}`);
+            this.onError?.(`网络提示: ${err.message}`);
           }
         });
       } catch (err: any) {
-        reject(err);
+        if (!isResolved) {
+          isResolved = true;
+          reject(err);
+        }
       }
     });
   }
@@ -113,13 +164,23 @@ export class MultiplayerService {
     this.myPlayerName = playerName;
     this.isHost = false;
 
-    const guestPeerId = `${this.formatHostPeerId(this.roomCode)}-g-${Date.now().toString(36)}`;
+    const guestPeerId = `${this.formatHostPeerId(this.roomCode)}-g-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     const hostPeerId = this.formatHostPeerId(this.roomCode);
 
     return new Promise((resolve, reject) => {
+      let isResolved = false;
+      const timeoutTimer = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          this.disconnect();
+          reject(new Error('连接房间超时，请确认房主已创建房间并处于候战大厅！'));
+        }
+      }, 12000);
+
       try {
         if (this.peer) {
           this.peer.destroy();
+          this.peer = null;
         }
 
         this.peer = new Peer(guestPeerId, PEER_CONFIG);
@@ -132,7 +193,6 @@ export class MultiplayerService {
           this.hostConnection = conn;
 
           conn.on('open', () => {
-            this.onConnected?.();
             // 发送加入请求给房主
             const joinMsg: NetworkMessage = {
               type: 'JOIN_REQUEST',
@@ -140,29 +200,74 @@ export class MultiplayerService {
               payload: { name: this.myPlayerName },
             };
             conn.send(joinMsg);
-            resolve();
           });
 
           conn.on('data', (data: unknown) => {
-            this.handleReceivedMessage(data as NetworkMessage);
+            const msg = data as NetworkMessage;
+            if (msg.type === 'ROOM_SYNC') {
+              if (msg.payload?.error) {
+                if (!isResolved) {
+                  isResolved = true;
+                  clearTimeout(timeoutTimer);
+                  reject(new Error(msg.payload.error));
+                }
+                return;
+              }
+              if (msg.payload?.mySeat !== undefined && !isResolved) {
+                isResolved = true;
+                clearTimeout(timeoutTimer);
+                this.mySeat = msg.payload.mySeat;
+                if (msg.payload.hostRules) {
+                  this.hostRules = msg.payload.hostRules;
+                }
+                if (msg.payload.players) {
+                  this.roomPlayers = [...msg.payload.players];
+                }
+                this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+                this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+                this.emit('connected');
+                this.onConnected?.();
+                resolve();
+                return;
+              }
+            }
+            this.handleReceivedMessage(msg);
           });
 
           conn.on('error', (err) => {
-            this.onError?.('连接房主失败，请确认房间码并检查房主是否已开好房间！');
-            reject(err);
+            if (!isResolved) {
+              isResolved = true;
+              clearTimeout(timeoutTimer);
+              reject(new Error(`连接房主失败: ${err.message}`));
+            }
           });
 
           conn.on('close', () => {
+            this.emit('error', '与房主的连接已断开');
             this.onError?.('与房主的连接已断开');
           });
         });
 
-        this.peer.on('error', (err) => {
-          this.onError?.(`加入房间失败: ${err.message}`);
-          reject(err);
+        this.peer.on('error', (err: any) => {
+          if (!isResolved) {
+            isResolved = true;
+            clearTimeout(timeoutTimer);
+            if (err.type === 'peer-unavailable') {
+              reject(new Error(`未找到房间 ${this.roomCode}，请确认房主已创建房间且代码无误！`));
+            } else {
+              reject(new Error(`加入房间失败 (${err.type || 'network'}): ${err.message}`));
+            }
+          } else {
+            this.emit('error', `网络提示: ${err.message}`);
+            this.onError?.(`网络提示: ${err.message}`);
+          }
         });
       } catch (err: any) {
-        reject(err);
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timeoutTimer);
+          reject(err);
+        }
       }
     });
   }
@@ -171,6 +276,8 @@ export class MultiplayerService {
    * 房主处理新的客端连接与消息
    */
   private handleIncomingClientConnection(conn: DataConnection) {
+    this.connections.set(conn.peer, conn);
+
     conn.on('open', () => {
       this.connections.set(conn.peer, conn);
     });
@@ -182,10 +289,12 @@ export class MultiplayerService {
 
     conn.on('close', () => {
       this.connections.delete(conn.peer);
-      // 找出关闭的座位并恢复为 AI / 等待状态
+      // 找出关闭的座位并恢复为 AI
+      let changed = false;
       for (const [seat, seatConn] of this.seatConnections.entries()) {
         if (seatConn.peer === conn.peer) {
           this.seatConnections.delete(seat);
+          this.roomPlayers = [...this.roomPlayers];
           this.roomPlayers[seat] = {
             seat,
             name: `电脑 ${seat} (AI)`,
@@ -193,10 +302,14 @@ export class MultiplayerService {
             isAI: true,
             isReady: true,
           };
-          this.broadcastRoomSync();
-          this.onRoomUpdate?.(this.roomPlayers, this.hostRules || undefined);
+          changed = true;
           break;
         }
+      }
+      if (changed) {
+        this.broadcastRoomSync();
+        this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+        this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
       }
     });
   }
@@ -208,6 +321,13 @@ export class MultiplayerService {
     switch (msg.type) {
       case 'JOIN_REQUEST':
         if (this.isHost && sourceConn) {
+          // 清理可能存在的旧连接
+          for (const [s, c] of this.seatConnections.entries()) {
+            if (c.peer === sourceConn.peer) {
+              this.seatConnections.delete(s);
+            }
+          }
+
           // 房主分配座位：优先选空位 (座位 1 或 座位 2)
           let assignedSeat: GameSeatIndex | null = null;
           if (!this.seatConnections.has(1)) {
@@ -218,6 +338,9 @@ export class MultiplayerService {
 
           if (assignedSeat !== null) {
             this.seatConnections.set(assignedSeat, sourceConn);
+            this.connections.set(sourceConn.peer, sourceConn);
+
+            this.roomPlayers = [...this.roomPlayers];
             this.roomPlayers[assignedSeat] = {
               seat: assignedSeat,
               name: msg.payload?.name || `好友 ${assignedSeat + 1}`,
@@ -226,13 +349,13 @@ export class MultiplayerService {
               isReady: true,
             };
 
-            // 1. 先直接回发给新加入的客端（带上分配的座位与房主规则）
+            // 1. 回发给新加入的客端（带上分配的座位与房主规则）
             sourceConn.send({
               type: 'ROOM_SYNC',
               senderId: this.myPlayerId,
               payload: {
                 mySeat: assignedSeat,
-                players: this.roomPlayers,
+                players: [...this.roomPlayers],
                 hostRules: this.hostRules,
                 roomCode: this.roomCode,
               },
@@ -241,8 +364,9 @@ export class MultiplayerService {
             // 2. 广播给所有客端同步全员座位
             this.broadcastRoomSync();
 
-            // 3. 触发房主本地状态更新
-            this.onRoomUpdate?.(this.roomPlayers, this.hostRules || undefined);
+            // 3. 触发房主本地状态更新 (确保新数组引用触发 React 渲染)
+            this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+            this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
           } else {
             // 房间已满
             sourceConn.send({
@@ -259,6 +383,7 @@ export class MultiplayerService {
       case 'ROOM_SYNC':
         // 客端收到同步
         if (msg.payload?.error) {
+          this.emit('error', msg.payload.error);
           this.onError?.(msg.payload.error);
           return;
         }
@@ -269,8 +394,9 @@ export class MultiplayerService {
           this.hostRules = msg.payload.hostRules;
         }
         if (msg.payload?.players) {
-          this.roomPlayers = msg.payload.players;
-          this.onRoomUpdate?.(this.roomPlayers, this.hostRules || undefined);
+          this.roomPlayers = [...msg.payload.players];
+          this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+          this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
         }
         break;
 
@@ -278,29 +404,35 @@ export class MultiplayerService {
         if (msg.payload?.rules) {
           this.hostRules = msg.payload.rules;
         }
+        this.emit('gameStart', msg.payload);
         this.onGameStart?.(msg.payload);
         break;
 
       case 'GAME_STATE_SYNC':
+        this.emit('gameStateSync', msg.payload);
         this.onGameStateSync?.(msg.payload);
         break;
 
       case 'PLAYER_DISCARD':
       case 'PLAYER_CLAIM':
         if (this.isHost) {
-          this.onPlayerAction?.({
+          const action = {
             seat: msg.senderSeat ?? 0,
             actionType: msg.type,
             payload: msg.payload,
-          });
+          };
+          this.emit('playerAction', action);
+          this.onPlayerAction?.(action);
         }
         break;
 
       case 'ROUND_OVER_SYNC':
+        this.emit('roundOver', msg.payload);
         this.onRoundOver?.(msg.payload);
         break;
 
       case 'CHAT_MESSAGE':
+        this.emit('chatMessage', msg.payload);
         this.onChatMessage?.(msg.payload);
         break;
     }
@@ -311,7 +443,7 @@ export class MultiplayerService {
    */
   public broadcastRoomSync() {
     this.broadcast('ROOM_SYNC', {
-      players: this.roomPlayers,
+      players: [...this.roomPlayers],
       hostRules: this.hostRules,
       roomCode: this.roomCode,
     });
@@ -324,6 +456,7 @@ export class MultiplayerService {
     if (!this.isHost || seat === 0) return;
     const current = this.roomPlayers[seat];
     const nextIsAI = !current.isAI;
+    this.roomPlayers = [...this.roomPlayers];
     this.roomPlayers[seat] = {
       ...current,
       isAI: nextIsAI,
@@ -331,19 +464,21 @@ export class MultiplayerService {
       isReady: nextIsAI,
     };
     this.broadcastRoomSync();
-    this.onRoomUpdate?.(this.roomPlayers, this.hostRules || undefined);
+    this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
+    this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
   }
 
   /**
    * 房主发送开始游戏
    */
-  public startGame() {
+  public startGame(initialState?: any) {
     if (!this.isHost) return;
-    const payload = {
-      players: this.roomPlayers,
+    const payload = initialState || {
+      players: [...this.roomPlayers],
       rules: this.hostRules!,
     };
     this.broadcast('GAME_START', payload);
+    this.emit('gameStart', payload);
     this.onGameStart?.(payload);
   }
 

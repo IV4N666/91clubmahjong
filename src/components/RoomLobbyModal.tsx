@@ -24,7 +24,8 @@ interface RoomLobbyModalProps {
   onStartGame: (
     mode: 'solo' | 'multiplayer',
     players: { name: string; isAI: boolean; seat: GameSeatIndex }[],
-    activeRules: RuleSettings
+    activeRules: RuleSettings,
+    initialPayload?: any
   ) => void;
   initialRoomCode?: string;
 }
@@ -47,8 +48,8 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
   // 房间内 3 位玩家座位状态
   const [roomPlayers, setRoomPlayers] = useState<RoomPeerInfo[]>([
     { seat: 0, name: playerName, isHost: true, isAI: false, isReady: true },
-    { seat: 1, name: '等待好友加入...', isHost: false, isAI: true, isReady: false },
-    { seat: 2, name: '等待好友加入...', isHost: false, isAI: true, isReady: false },
+    { seat: 1, name: '等待好友加入...', isHost: false, isAI: false, isReady: false },
+    { seat: 2, name: '电脑 2 (AI)', isHost: false, isAI: true, isReady: true },
   ]);
 
   // 如果打开时带了房间码，直接切到加入视图
@@ -59,13 +60,29 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     }
   }, [initialRoomCode]);
 
-  // 注册 multiplayerService 监听
+  // 注册 multiplayerService 监听 (使用事件订阅，避免重渲染覆盖)
   useEffect(() => {
-    multiplayerService.onRoomUpdate = (players, hostRules) => {
-      setRoomPlayers(players);
+    const unsubRoomUpdate = multiplayerService.on('roomUpdate', (players: RoomPeerInfo[], hostRules?: RuleSettings) => {
+      setRoomPlayers([...players]);
       if (hostRules) {
         setActiveRules(hostRules);
       }
+    });
+
+    const unsubError = multiplayerService.on('error', (err: string) => {
+      setErrorMsg(err);
+      setLoading(false);
+    });
+
+    const unsubGameStart = multiplayerService.on('gameStart', (payload: any) => {
+      onStartGame('multiplayer', payload.players || roomPlayers, payload.rules || activeRules, payload);
+      onClose();
+    });
+
+    // 维持直连 callback 兼容
+    multiplayerService.onRoomUpdate = (players, hostRules) => {
+      setRoomPlayers([...players]);
+      if (hostRules) setActiveRules(hostRules);
     };
 
     multiplayerService.onError = (err) => {
@@ -74,16 +91,16 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     };
 
     multiplayerService.onGameStart = (payload) => {
-      onStartGame('multiplayer', payload.players, payload.rules || activeRules);
+      onStartGame('multiplayer', payload.players || roomPlayers, payload.rules || activeRules, payload);
       onClose();
     };
 
     return () => {
-      multiplayerService.onRoomUpdate = undefined;
-      multiplayerService.onError = undefined;
-      multiplayerService.onGameStart = undefined;
+      unsubRoomUpdate();
+      unsubError();
+      unsubGameStart();
     };
-  }, [onStartGame, onClose, activeRules]);
+  }, [onStartGame, onClose, activeRules, roomPlayers]);
 
   if (!isOpen) return null;
 
@@ -106,7 +123,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     try {
       localStorage.setItem('mahjong_user_name', playerName);
       await multiplayerService.createRoom(code, playerName, rules);
-      setRoomPlayers(multiplayerService.roomPlayers);
+      setRoomPlayers([...multiplayerService.roomPlayers]);
       setActiveRules(rules);
       setView('inRoom');
     } catch (err: any) {
@@ -127,6 +144,10 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     try {
       localStorage.setItem('mahjong_user_name', playerName);
       await multiplayerService.joinRoom(roomCode.trim(), playerName);
+      setRoomPlayers([...multiplayerService.roomPlayers]);
+      if (multiplayerService.hostRules) {
+        setActiveRules(multiplayerService.hostRules);
+      }
       setView('inRoom');
     } catch (err: any) {
       setErrorMsg(err.message || '加入房间失败，请检查房间码');
@@ -148,9 +169,10 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     multiplayerService.toggleSeatAI(seatIdx);
   };
 
-  // 房主启动对战
+  // 房主启动对战 (由 MahjongGameTab 统一生成权威牌墙并广播 GAME_START)
   const handleStartMultiplayer = () => {
-    multiplayerService.startGame();
+    onStartGame('multiplayer', roomPlayers, activeRules);
+    onClose();
   };
 
   // 单机立即开始 (无需网络)
@@ -442,6 +464,11 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                           <span className="font-bold text-xs sm:text-sm text-slate-100">
                             {p.name}
                           </span>
+                          {idx === multiplayerService.mySeat && (
+                            <span className="text-[9px] bg-amber-400/30 text-amber-300 border border-amber-400/50 font-bold px-1.5 py-0.5 rounded">
+                              我
+                            </span>
+                          )}
                           {p.isHost && (
                             <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded">
                               房主

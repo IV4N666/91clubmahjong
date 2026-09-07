@@ -384,7 +384,9 @@ export class MultiplayerService {
         // 客端收到同步
         if (msg.payload?.error) {
           this.emit('error', msg.payload.error);
-          this.onError?.(msg.payload.error);
+          if (!this.eventListeners.get('error')?.size) {
+            this.onError?.(msg.payload.error);
+          }
           return;
         }
         if (msg.payload?.mySeat !== undefined) {
@@ -396,7 +398,9 @@ export class MultiplayerService {
         if (msg.payload?.players) {
           this.roomPlayers = [...msg.payload.players];
           this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
-          this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+          if (!this.eventListeners.get('roomUpdate')?.size) {
+            this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+          }
         }
         break;
 
@@ -405,12 +409,16 @@ export class MultiplayerService {
           this.hostRules = msg.payload.rules;
         }
         this.emit('gameStart', msg.payload);
-        this.onGameStart?.(msg.payload);
+        if (!this.eventListeners.get('gameStart')?.size) {
+          this.onGameStart?.(msg.payload);
+        }
         break;
 
       case 'GAME_STATE_SYNC':
         this.emit('gameStateSync', msg.payload);
-        this.onGameStateSync?.(msg.payload);
+        if (!this.eventListeners.get('gameStateSync')?.size) {
+          this.onGameStateSync?.(msg.payload);
+        }
         break;
 
       case 'PLAYER_DISCARD':
@@ -422,18 +430,24 @@ export class MultiplayerService {
             payload: msg.payload,
           };
           this.emit('playerAction', action);
-          this.onPlayerAction?.(action);
+          if (!this.eventListeners.get('playerAction')?.size) {
+            this.onPlayerAction?.(action);
+          }
         }
         break;
 
       case 'ROUND_OVER_SYNC':
         this.emit('roundOver', msg.payload);
-        this.onRoundOver?.(msg.payload);
+        if (!this.eventListeners.get('roundOver')?.size) {
+          this.onRoundOver?.(msg.payload);
+        }
         break;
 
       case 'CHAT_MESSAGE':
         this.emit('chatMessage', msg.payload);
-        this.onChatMessage?.(msg.payload);
+        if (!this.eventListeners.get('chatMessage')?.size) {
+          this.onChatMessage?.(msg.payload);
+        }
         break;
     }
   }
@@ -465,11 +479,13 @@ export class MultiplayerService {
     };
     this.broadcastRoomSync();
     this.emit('roomUpdate', [...this.roomPlayers], this.hostRules || undefined);
-    this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+    if (!this.eventListeners.get('roomUpdate')?.size) {
+      this.onRoomUpdate?.([...this.roomPlayers], this.hostRules || undefined);
+    }
   }
 
   /**
-   * 房主发送开始游戏
+   * 房主发送开始游戏 (权威发牌只向客端广播，房主本地已由 startNewGame 完成初始化)
    */
   public startGame(initialState?: any) {
     if (!this.isHost) return;
@@ -478,8 +494,6 @@ export class MultiplayerService {
       rules: this.hostRules!,
     };
     this.broadcast('GAME_START', payload);
-    this.emit('gameStart', payload);
-    this.onGameStart?.(payload);
   }
 
   /**

@@ -74,33 +74,11 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
       setLoading(false);
     });
 
-    const unsubGameStart = multiplayerService.on('gameStart', (payload: any) => {
-      onStartGame('multiplayer', payload.players || roomPlayers, payload.rules || activeRules, payload);
-      onClose();
-    });
-
-    // 维持直连 callback 兼容
-    multiplayerService.onRoomUpdate = (players, hostRules) => {
-      setRoomPlayers([...players]);
-      if (hostRules) setActiveRules(hostRules);
-    };
-
-    multiplayerService.onError = (err) => {
-      setErrorMsg(err);
-      setLoading(false);
-    };
-
-    multiplayerService.onGameStart = (payload) => {
-      onStartGame('multiplayer', payload.players || roomPlayers, payload.rules || activeRules, payload);
-      onClose();
-    };
-
     return () => {
       unsubRoomUpdate();
       unsubError();
-      unsubGameStart();
     };
-  }, [onStartGame, onClose, activeRules, roomPlayers]);
+  }, []);
 
   if (!isOpen) return null;
 

@@ -57,15 +57,16 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
   return (
     <div className="bg-[#114028] border border-emerald-700/60 rounded-2xl p-3 sm:p-5 shadow-xl space-y-4">
       {/* 顶部手牌统计与算番主行动按钮 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-800/80 pb-3">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-emerald-400" />
-          <h2 className="font-mahjong font-bold text-emerald-100 text-base sm:text-lg">
-            {lang === 'zh' ? '当前牌面' : 'Current Hand'}
+      {/* 顶部手牌统计与算番主行动按钮 */}
+      <div className="flex items-center justify-between gap-2 border-b border-emerald-800/80 pb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+          <h2 className="font-mahjong font-bold text-emerald-100 text-sm sm:text-lg whitespace-nowrap">
+            {lang === 'zh' ? '当前牌面' : 'Hand'}
           </h2>
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700">
-            {lang === 'zh' ? `立牌 ${handTiles.length} 张` : `${handTiles.length} In-hand`}
-            {melds.length > 0 && ` + ${melds.length}组副露`}
+          <span className="text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700 whitespace-nowrap">
+            {lang === 'zh' ? `立牌${handTiles.length}` : `${handTiles.length}t`}
+            {melds.length > 0 && ` +${melds.length}副`}
             {` (${totalTilesCount}/14)`}
           </span>
         </div>
@@ -76,7 +77,7 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
           onClick={onCalculate}
           disabled={totalTilesCount < 14 && !isWinReady}
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-lg transition-all transform
+            flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow-lg transition-all transform shrink-0 whitespace-nowrap
             ${
               isWinReady || totalTilesCount >= 14
                 ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 scale-105 animate-pulse shadow-amber-500/25'
@@ -84,25 +85,25 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
             }
           `}
         >
-          <Sparkles className="w-4 h-4 text-amber-950" />
-          <span>{lang === 'zh' ? '结算番数 & 算钱' : 'Calculate Fan & Payout'}</span>
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-950" />
+          <span>{lang === 'zh' ? '结算番数算钱' : 'Calculate Fan'}</span>
         </button>
       </div>
 
       {/* 1. 立牌展示区 (In-hand Tiles) */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
           <span className="text-xs font-semibold text-emerald-300 flex items-center gap-1">
             🀄 {lang === 'zh' ? '手中暗牌 (点击红叉可移除)' : 'Concealed Hand Tiles'}
           </span>
           {handTiles.length === 0 && (
             <span className="text-xs text-amber-300/80">
-              {lang === 'zh' ? '请在下方选择麻将牌' : 'Select tiles below to add'}
+              {lang === 'zh' ? '请在下方选择麻将牌' : 'Select tiles below'}
             </span>
           )}
         </div>
 
-        <div className="min-h-[76px] bg-[#0c2e1c]/80 border border-emerald-800/80 rounded-xl p-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2 shadow-inner">
+        <div className="min-h-[76px] bg-[#0c2e1c]/90 border border-emerald-800/80 rounded-xl pt-3 pb-2.5 px-2 flex flex-wrap items-center justify-center sm:justify-start gap-1 sm:gap-2 shadow-inner">
           {handTiles.length === 0 ? (
             <div className="w-full py-4 text-center text-emerald-400/60 text-xs sm:text-sm font-medium">
               {lang === 'zh'
@@ -213,65 +214,85 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
       </div>
 
       {/* 4. 胡牌条件与坐位设置快捷开关 */}
-      <div className="bg-emerald-950/60 border border-emerald-800/70 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+      <div className="bg-emerald-950/60 border border-emerald-800/70 rounded-xl p-2.5 sm:p-3 grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 text-xs">
         {/* 自摸开关 */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none bg-[#092517] p-2 rounded-lg border border-emerald-800/80 hover:border-emerald-700">
           <input
             type="checkbox"
             checked={winningConditions.isZimo}
             onChange={(e) => onUpdateConditions({ isZimo: e.target.checked })}
-            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700"
+            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700 shrink-0"
           />
-          <span className={winningConditions.isZimo ? 'text-amber-300 font-bold' : 'text-emerald-300'}>
-            🎯 {lang === 'zh' ? '自摸 (+1番/两家付)' : 'Self-Drawn (+1 Fan)'}
-          </span>
+          <div className="leading-tight">
+            <span className={`block font-bold text-[11px] sm:text-xs ${winningConditions.isZimo ? 'text-amber-300' : 'text-emerald-300'}`}>
+              🎯 {lang === 'zh' ? '自摸' : 'Self-Drawn'}
+            </span>
+            <span className="text-[10px] text-emerald-400/80">
+              {lang === 'zh' ? '+1番/两家付' : '+1 Fan'}
+            </span>
+          </div>
         </label>
 
         {/* 杠上开花 */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none bg-[#092517] p-2 rounded-lg border border-emerald-800/80 hover:border-emerald-700">
           <input
             type="checkbox"
             checked={winningConditions.isKongBloom}
             onChange={(e) => onUpdateConditions({ isKongBloom: e.target.checked })}
-            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700"
+            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700 shrink-0"
           />
-          <span className={winningConditions.isKongBloom ? 'text-amber-300 font-bold' : 'text-emerald-300'}>
-            🌸 {lang === 'zh' ? '杠上开花 (+1番)' : 'Kong Bloom (+1)'}
-          </span>
+          <div className="leading-tight">
+            <span className={`block font-bold text-[11px] sm:text-xs ${winningConditions.isKongBloom ? 'text-amber-300' : 'text-emerald-300'}`}>
+              🌸 {lang === 'zh' ? '杠上开花' : 'Kong Bloom'}
+            </span>
+            <span className="text-[10px] text-emerald-400/80">
+              {lang === 'zh' ? '+1番' : '+1 Fan'}
+            </span>
+          </div>
         </label>
 
         {/* 抢杠 */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none bg-[#092517] p-2 rounded-lg border border-emerald-800/80 hover:border-emerald-700">
           <input
             type="checkbox"
             checked={winningConditions.isRobbingKong}
             onChange={(e) => onUpdateConditions({ isRobbingKong: e.target.checked })}
-            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700"
+            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700 shrink-0"
           />
-          <span className={winningConditions.isRobbingKong ? 'text-amber-300 font-bold' : 'text-emerald-300'}>
-            ⚡ {lang === 'zh' ? '抢杠 (+1番)' : 'Robbing Kong (+1)'}
-          </span>
+          <div className="leading-tight">
+            <span className={`block font-bold text-[11px] sm:text-xs ${winningConditions.isRobbingKong ? 'text-amber-300' : 'text-emerald-300'}`}>
+              ⚡ {lang === 'zh' ? '抢杠' : 'Rob Kong'}
+            </span>
+            <span className="text-[10px] text-emerald-400/80">
+              {lang === 'zh' ? '+1番' : '+1 Fan'}
+            </span>
+          </div>
         </label>
 
         {/* 海底捞月 */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none bg-[#092517] p-2 rounded-lg border border-emerald-800/80 hover:border-emerald-700">
           <input
             type="checkbox"
             checked={winningConditions.isLastTileDraw}
             onChange={(e) => onUpdateConditions({ isLastTileDraw: e.target.checked })}
-            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700"
+            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-emerald-900 border-emerald-700 shrink-0"
           />
-          <span className={winningConditions.isLastTileDraw ? 'text-amber-300 font-bold' : 'text-emerald-300'}>
-            🌙 {lang === 'zh' ? '海底捞月 (+1番)' : 'Last Tile Draw (+1)'}
-          </span>
+          <div className="leading-tight">
+            <span className={`block font-bold text-[11px] sm:text-xs ${winningConditions.isLastTileDraw ? 'text-amber-300' : 'text-emerald-300'}`}>
+              🌙 {lang === 'zh' ? '海底捞月' : 'Last Draw'}
+            </span>
+            <span className="text-[10px] text-emerald-400/80">
+              {lang === 'zh' ? '+1番' : '+1 Fan'}
+            </span>
+          </div>
         </label>
 
         {/* 自身门风 */}
-        <div className="col-span-2 sm:col-span-4 flex items-center justify-between pt-2 border-t border-emerald-800/60">
-          <span className="text-emerald-300 font-medium">
+        <div className="col-span-2 sm:col-span-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-emerald-800/60">
+          <span className="text-emerald-300 font-medium text-xs">
             🧭 {lang === 'zh' ? '您的门风（正风花可加番）：' : 'Your Seat Wind:'}
           </span>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 w-full sm:w-auto">
             {(['east', 'south', 'west'] as WindValue[]).map((w) => {
               const names = { east: '东家', south: '南家', west: '西家', north: '北家' };
               const isSelected = winningConditions.playerSeat === w;
@@ -280,9 +301,9 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
                   key={w}
                   type="button"
                   onClick={() => onUpdateConditions({ playerSeat: w })}
-                  className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition text-center ${
                     isSelected
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm ring-1 ring-amber-300'
                       : 'bg-emerald-900/80 text-emerald-300 hover:bg-emerald-800'
                   }`}
                 >

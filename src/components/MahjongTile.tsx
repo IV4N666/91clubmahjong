@@ -29,13 +29,13 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
     if (onClick) onClick();
   };
 
-  // 尺寸预设
+  // 尺寸预设 (移动端自适应优化，避免手机端排版挤出换行错位)
   const sizeClasses = {
     xs: 'w-7 h-10 text-xs rounded',
-    sm: 'w-9 h-12 text-sm rounded-md',
-    md: 'w-11 h-16 text-base rounded-md',
-    lg: 'w-14 h-20 text-xl rounded-lg',
-    xl: 'w-16 h-24 text-2xl rounded-xl',
+    sm: 'w-8 sm:w-9 h-11 sm:h-12 text-xs sm:text-sm rounded-md',
+    md: 'w-9 sm:w-11 h-13 sm:h-16 text-sm sm:text-base rounded-md',
+    lg: 'w-12 sm:w-14 h-17 sm:h-20 text-lg sm:text-xl rounded-lg',
+    xl: 'w-14 sm:w-16 h-20 sm:h-24 text-xl sm:text-2xl rounded-xl',
   };
 
   // 渲染麻将牌面

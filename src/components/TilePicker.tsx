@@ -118,40 +118,41 @@ export const TilePicker: React.FC<TilePickerProps> = ({
         : 'bg-[#114028] border-emerald-700/60'
     }`}>
       {/* 操作目标模式切换 (加入手牌 vs 记入公共弃牌池) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-[#061c12] rounded-xl border border-emerald-800">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-emerald-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-[#061c12] rounded-xl border border-emerald-800">
+        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+          <span className="text-xs font-bold text-emerald-200 shrink-0">
             {lang === 'zh' ? '选牌去向：' : 'Target:'}
           </span>
-          <div className="flex items-center gap-1 bg-[#092b1b] p-0.5 rounded-lg border border-emerald-700/60 text-xs">
+          <div className="flex items-center gap-1 bg-[#092b1b] p-0.5 rounded-lg border border-emerald-700/60 text-xs flex-1 sm:flex-initial justify-end sm:justify-start">
             <button
               type="button"
               onClick={() => setTargetMode('hand')}
-              className={`px-3 py-1 rounded-md font-bold transition flex items-center gap-1.5 ${
+              className={`flex-1 sm:flex-initial px-2.5 sm:px-3 py-1 rounded-md font-bold transition flex items-center justify-center gap-1 text-xs ${
                 targetMode === 'hand'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-emerald-300 hover:text-white'
               }`}
             >
               <span>🀄</span>
-              <span>{lang === 'zh' ? '加入手牌' : 'Add to Hand'}</span>
+              <span>{lang === 'zh' ? '加手牌' : 'Hand'}</span>
             </button>
             <button
               type="button"
               onClick={() => setTargetMode('pool')}
-              className={`px-3 py-1 rounded-md font-bold transition flex items-center gap-1.5 ${
+              className={`flex-1 sm:flex-initial px-2.5 sm:px-3 py-1 rounded-md font-bold transition flex items-center justify-center gap-1 text-xs ${
                 targetMode === 'pool'
                   ? 'bg-teal-500 text-slate-950 shadow-md'
                   : 'text-teal-300 hover:text-white'
               }`}
             >
               <span>🌊</span>
-              <span>{lang === 'zh' ? '记入公共弃牌池 (别人/自己出牌)' : 'Add to Discard Pool'}</span>
+              <span>{lang === 'zh' ? '记牌池' : 'Discard'}</span>
+              <span className="hidden sm:inline">{lang === 'zh' ? ' (出牌)' : ''}</span>
             </button>
           </div>
         </div>
 
-        <div className="text-[11px] text-emerald-300/80">
+        <div className="text-[10px] sm:text-[11px] text-emerald-300/80 text-center sm:text-right">
           {targetMode === 'hand'
             ? (lang === 'zh' ? '💡 点击牌面直接放进你的手牌' : 'Click to add to your hand')
             : (lang === 'zh' ? '🌊 点击牌面记入桌面弃牌池，自动扣减剩余张数' : 'Click to add to public table discards')}
@@ -159,20 +160,20 @@ export const TilePicker: React.FC<TilePickerProps> = ({
       </div>
 
       {/* 选牌选项卡 Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-800/80 pb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-800/80 pb-2">
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <PlusCircle className="w-5 h-5 text-amber-400" />
-          <h3 className="font-mahjong font-bold text-emerald-100 text-sm sm:text-base">
+          <PlusCircle className="w-5 h-5 text-amber-400 shrink-0" />
+          <h3 className="font-mahjong font-bold text-emerald-100 text-sm sm:text-base whitespace-nowrap">
             {lang === 'zh' ? '选牌面板' : 'Tile Picker'}
           </h3>
         </div>
 
-        {/* 标签切换 */}
-        <div className="flex flex-wrap gap-1 bg-[#0c2e1c] p-1 rounded-xl border border-emerald-800">
+        {/* 标签切换 - 移动端支持水平滑动 */}
+        <div className="flex overflow-x-auto no-scrollbar gap-1 bg-[#0c2e1c] p-1 rounded-xl border border-emerald-800 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setActiveTab('tong')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'tong'
                 ? 'bg-emerald-600 text-white shadow'
                 : 'text-emerald-300 hover:text-white'
@@ -183,46 +184,48 @@ export const TilePicker: React.FC<TilePickerProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('honors')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'honors'
                 ? 'bg-emerald-600 text-white shadow'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            {lang === 'zh' ? '字牌 (东南西北/中发白)' : 'Honors'}
+            {lang === 'zh' ? '字牌' : 'Honors'}
+            <span className="hidden sm:inline">{lang === 'zh' ? ' (风/龙)' : ''}</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('fei')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'fei'
                 ? 'bg-amber-500 text-slate-950 shadow'
                 : 'text-amber-300 hover:text-amber-200'
             }`}
           >
-            {lang === 'zh' ? '⭐ 飞牌 (百搭)' : 'Fei (Jokers)'}
+            {lang === 'zh' ? '⭐ 飞牌' : 'Fei'}
+            <span className="hidden sm:inline">{lang === 'zh' ? ' (百搭)' : ' (Jokers)'}</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('bonus')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'bonus'
                 ? 'bg-emerald-600 text-white shadow'
                 : 'text-emerald-300 hover:text-white'
             }`}
           >
-            {lang === 'zh' ? '🌺 花与动物' : 'Flowers & Animals'}
+            {lang === 'zh' ? '🌺 花牌动物' : 'Flowers'}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('quick_meld')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'quick_meld'
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow'
                 : 'text-amber-300 hover:text-white'
             }`}
           >
-            {lang === 'zh' ? '⚡ 快捷碰/杠/顺' : 'Quick Melds'}
+            {lang === 'zh' ? '⚡ 快捷碰杠' : 'Quick Melds'}
           </button>
         </div>
       </div>

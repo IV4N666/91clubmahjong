@@ -207,10 +207,10 @@ export const DiscardPool: React.FC<DiscardPoolProps> = ({
                 <div className="flex items-center justify-between text-[11px] font-bold text-teal-300 mb-1 px-1">
                   <span>● 筒子 (点击牌面直接 +1 张入池)：</span>
                   <span className="text-emerald-400 text-[10px]">
-                    {lang === 'zh' ? '池: 牌池中张数 | 剩: 外面还剩几张' : 'Pool: discarded | Left: unrevealed'}
+                    {lang === 'zh' ? '池:已打出 | 剩:剩余活张' : 'Pool | Left'}
                   </span>
                 </div>
-                <div className="grid grid-cols-5 sm:grid-cols-9 gap-1.5 sm:gap-2">
+                <div className="flex overflow-x-auto no-scrollbar gap-1.5 sm:grid sm:grid-cols-9 p-0.5">
                   {TONG_TILES.map((tile) => {
                     const stats = getTileStats(tile.id);
                     return (
@@ -218,7 +218,7 @@ export const DiscardPool: React.FC<DiscardPoolProps> = ({
                         key={tile.id}
                         onClick={() => handleAdd(tile)}
                         className={`
-                          relative group flex flex-col items-center justify-between p-1.5 rounded-xl border transition-all cursor-pointer select-none
+                          shrink-0 w-[58px] sm:w-auto relative group flex flex-col items-center justify-between p-1 rounded-xl border transition-all cursor-pointer select-none
                           ${
                             stats.isDead
                               ? 'bg-red-950/40 border-red-800/60 ring-1 ring-red-500/40 opacity-80'
@@ -273,7 +273,7 @@ export const DiscardPool: React.FC<DiscardPoolProps> = ({
                 <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 mb-1 px-1">
                   <span>🀄 字牌 (东南西北 / 中發白)：</span>
                 </div>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
+                <div className="flex overflow-x-auto no-scrollbar gap-1.5 sm:grid sm:grid-cols-7 p-0.5">
                   {[...WIND_TILES, ...DRAGON_TILES].map((tile) => {
                     const stats = getTileStats(tile.id);
                     return (
@@ -281,7 +281,7 @@ export const DiscardPool: React.FC<DiscardPoolProps> = ({
                         key={tile.id}
                         onClick={() => handleAdd(tile)}
                         className={`
-                          relative group flex flex-col items-center justify-between p-1.5 rounded-xl border transition-all cursor-pointer select-none
+                          shrink-0 w-[58px] sm:w-auto relative group flex flex-col items-center justify-between p-1 rounded-xl border transition-all cursor-pointer select-none
                           ${
                             stats.isDead
                               ? 'bg-red-950/40 border-red-800/60 ring-1 ring-red-500/40 opacity-80'

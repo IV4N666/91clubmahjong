@@ -19,7 +19,7 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({
   onClose,
   lang,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<'basics' | 'fan_list' | 'animals' | 'glossary'>('basics');
+  const [activeCategory, setActiveCategory] = useState<'basics' | 'fan_list' | 'animals' | 'glossary' | 'payout'>('basics');
 
   if (!isOpen) return null;
 
@@ -93,6 +93,17 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({
             }`}
           >
             📖 {lang === 'zh' ? '大马麻将术语词典' : 'Glossary'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory('payout')}
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition ${
+              activeCategory === 'payout'
+                ? 'bg-amber-500 text-slate-950 shadow'
+                : 'text-emerald-300 hover:bg-emerald-900'
+            }`}
+          >
+            💰 {lang === 'zh' ? '维基筹码与赔付' : 'Payout Rules'}
           </button>
         </div>
 
@@ -317,6 +328,65 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({
                 <p className="text-emerald-200">
                   胡牌时未摸得任何花牌与动物牌。在充满花牌的大马三人麻将中难度极高，维基百科与马来西亚传统规矩直接认定为满胡爆番（10 番）！
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* 5. 维基筹码与赔付 */}
+          {activeCategory === 'payout' && (
+            <div className="space-y-3">
+              <div className="bg-[#0b2919] border border-emerald-800 rounded-2xl p-4 space-y-2">
+                <h3 className="font-bold text-amber-300 text-sm">
+                  📚 维基百科马来西亚三人麻雀权威计分准则
+                </h3>
+                <p className="text-emerald-200">
+                  维基百科明确记录了马来西亚三人麻将正统的筹码计分与赔付方式，主要包含自摸与两种放铳出冲制度：
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div className="bg-emerald-950/80 p-3 rounded-xl border border-emerald-800 space-y-1">
+                    <span className="font-bold text-amber-300 text-xs block">1. 自摸计分 (Self-Drawn)</span>
+                    <p className="text-emerald-300 text-[11px]">
+                      两位闲家<b>各自支付</b>赢家吃胡番数。例如 6 番，两家各付 6 番，赢家共得 12 番。
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-950/80 p-3 rounded-xl border border-emerald-800 space-y-1">
+                    <span className="font-bold text-amber-300 text-xs block">2. 放铳包牌制 (Full Pay)</span>
+                    <p className="text-emerald-300 text-[11px]">
+                      放铳玩家<b>一人全包支付吃胡番数 × 3</b>，另一位无辜闲家无需支付！
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-950/80 p-3 rounded-xl border border-emerald-800 space-y-1">
+                    <span className="font-bold text-amber-300 text-xs block">3. 放铳比例制 (Ratio Pay)</span>
+                    <p className="text-emerald-300 text-[11px]">
+                      放铳玩家支付<b>吃胡番数 × 2</b>，另一位闲家支付<b>吃胡番数 × 1</b>，赢家总收 3 倍。
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-950/80 p-3 rounded-xl border border-emerald-800 space-y-1">
+                    <span className="font-bold text-amber-300 text-xs block">4. 现代民间包两家 (Casual 2x)</span>
+                    <p className="text-emerald-300 text-[11px]">
+                      大马民间常见简便打法：放铳者包两家输掉金额（一人付 2 倍，闲家 0）。
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#0b2919] border border-emerald-800 rounded-2xl p-4 space-y-2">
+                <h3 className="font-bold text-amber-300 text-sm">
+                  🌸 维基百科正统门风花牌计番法则
+                </h3>
+                <div className="space-y-1.5 text-emerald-200 text-xs">
+                  <p>• <b>1号花 (春 / 梅)：</b> 对应东位。只有坐东的玩家摸到计 1 番。</p>
+                  <p>• <b>2号花 (夏 / 兰)：</b> 对应南位。只有坐南的玩家摸到计 1 番。</p>
+                  <p>• <b>3号花 (秋 / 菊)：</b> 对应西位。只有坐西的玩家摸到计 1 番。</p>
+                  <p>• <b>4号花 (冬 / 竹)：</b> 对应北位。因三人麻雀无北位玩家，<b>任何玩家摸到冬或竹均计 1 番</b>！</p>
+                  <p className="text-[11px] text-emerald-400/90 pt-1">
+                    💡 玩家亦可在【设置】中自由切换为民间常见的“休闲全花制”（不论门风，每张摸到的花牌均计 1 番）。
+                  </p>
+                </div>
               </div>
             </div>
           )}

@@ -429,6 +429,7 @@ export const App: React.FC = () => {
               setRounds(prev => [record, ...prev]);
             }}
             onOpenRules={() => setIsRulesOpen(true)}
+            onBackToCalculator={() => handleSelectTab('calculator')}
           />
         ) : (
           <>
@@ -487,6 +488,27 @@ export const App: React.FC = () => {
                 }
               }}
             />
+
+            {/* 5. 试玩对战与好友联机入口卡片 (不占用顶部导航栏空间) */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-[#0b311e] to-emerald-950/90 border border-amber-500/30 text-xs text-emerald-200 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center font-black text-sm shrink-0">
+                  🀄
+                </span>
+                <div>
+                  <div className="font-bold text-amber-200 text-sm">三人麻将实战试玩 & 好友联机</div>
+                  <div className="text-[11px] text-emerald-300/80">支持智能电脑 AI 陪练、私人房间输入房号实时对战</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSelectTab('game')}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black shadow-md transition active:scale-95 flex items-center gap-1 ml-auto"
+              >
+                <span>进入对战</span>
+                <span>→</span>
+              </button>
+            </div>
           </>
         )}
       </main>
@@ -539,6 +561,8 @@ export const App: React.FC = () => {
         onSaveRules={handleSaveRules}
         onResetDefault={handleResetRules}
         lang={lang}
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
       />
 
       {/* 新手规则与番种大全弹窗 */}

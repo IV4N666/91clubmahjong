@@ -46,8 +46,8 @@ export const FLOWER_TILES: MahjongTileData[] = [
   // 四君子
   { id: 'flower_mei', category: 'flower', value: 'mei', nameZh: '梅', nameEn: 'Plum', flowerNumber: 1, color: '#2563eb' },
   { id: 'flower_lan', category: 'flower', value: 'lan', nameZh: '兰', nameEn: 'Orchid', flowerNumber: 2, color: '#2563eb' },
-  { id: 'flower_zhu', category: 'flower', value: 'zhu', nameZh: '竹', nameEn: 'Bamboo', flowerNumber: 3, color: '#2563eb' },
-  { id: 'flower_ju', category: 'flower', value: 'ju', nameZh: '菊', nameEn: 'Chrysanthemum', flowerNumber: 4, color: '#2563eb' },
+  { id: 'flower_ju', category: 'flower', value: 'ju', nameZh: '菊', nameEn: 'Chrysanthemum', flowerNumber: 3, color: '#2563eb' },
+  { id: 'flower_zhu', category: 'flower', value: 'zhu', nameZh: '竹', nameEn: 'Bamboo', flowerNumber: 4, color: '#2563eb' },
 ];
 
 // 动物牌 (Animals: 猫、老鼠、鸡、蜈蚣)

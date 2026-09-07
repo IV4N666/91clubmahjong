@@ -58,7 +58,11 @@ export interface RuleSettings {
   baoFanThreshold?: number; // 爆番门槛番数 (默认 10 番，超过 10 番算爆番)
   baoFanMultiplier?: number; // 爆番倍数 (默认 20 倍底价)
   customTierTable: { fan: number; amount: number }[];
-  shooterPaysAll: boolean; // 出冲是否一人包全部
+  shooterPaysAll: boolean; // 出冲是否一人包全部 (兼容旧配置)
+  // 放铳计分模式：维基包牌制(3倍)、维基比例制(2:1)、现代包两家(2倍)、仅出冲(1倍)
+  payoutMode?: 'shooter_full_3x' | 'shooter_ratio' | 'shooter_full_2x' | 'shooter_only_1x';
+  // 花牌计番模式：'seat_matching' (维基百科正统门风花，冬竹任意计一番) 或 'all_flowers' (休闲规则摸花全计番)
+  flowerScoringMode?: 'seat_matching' | 'all_flowers';
   enableAnimalBiteBonus: boolean; // 猫吃老鼠/鸡吃蜈蚣即时现金奖励
   animalBiteCashAmount: number; // 咬到出钱金额 (例如 RM 1.00)
   flowerSetFan: number; // 一套花番数 (默认 2番或5番)
@@ -143,6 +147,7 @@ export interface CalculationResult {
     basePrice: number;
     winnerReceivedTotal: number;
     shooterPays: number;
+    otherPays?: number; // 比例制下非放铳闲家需付的金额 (若有)
     eachPayIfZimo: number;
     biteBonusEarned: number;
     feiCashEarned: number;

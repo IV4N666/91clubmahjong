@@ -16,6 +16,7 @@ import {
   Layers,
   HelpCircle,
   CheckCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   MahjongTileData,
@@ -50,6 +51,7 @@ interface MahjongGameTabProps {
   soundEnabled: boolean;
   onRecordRoundToLedger: (record: GameRoundRecord) => void;
   onOpenRules: () => void;
+  onBackToCalculator?: () => void;
 }
 
 export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
@@ -58,6 +60,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   soundEnabled,
   onRecordRoundToLedger,
   onOpenRules,
+  onBackToCalculator,
 }) => {
   // 1. 规则状态：支持遵循房主同步过来的规则
   const [activeGameRules, setActiveGameRules] = useState<RuleSettings>(rules);
@@ -1039,6 +1042,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
         {/* 右侧快捷设置 */}
         <div className="flex items-center gap-2">
+          {/* 返回算番器 */}
+          {onBackToCalculator && (
+            <button
+              type="button"
+              onClick={onBackToCalculator}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 shadow transition active:scale-95"
+              title="返回 91Club 算番与算钱记账助手"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>算番器</span>
+            </button>
+          )}
+
           {/* 联机开房 / 切换房间 */}
           <button
             type="button"

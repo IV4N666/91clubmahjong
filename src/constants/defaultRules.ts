@@ -22,6 +22,8 @@ export const DEFAULT_RULES: RuleSettings = {
     { fan: 16, amount: 128.00 },
   ],
   shooterPaysAll: true, // 出冲者一人全包 (大马三人麻将常见玩法：一人出冲包两家钱)
+  payoutMode: 'shooter_full_2x', // 默认现代大马包两家 (放铳者一人赔 2×底价)
+  flowerScoringMode: 'all_flowers', // 默认休闲规则：摸到每张花牌均计 1 番
   enableAnimalBiteBonus: true, // 咬到奖励 (猫吃老鼠，鸡吃蜈蚣)
   animalBiteCashAmount: 1.00, // 咬到即时现金 RM 1.00
   flowerSetFan: 4, // 一套花 (四季或四君子) 维基标准奖励 4 番
@@ -92,6 +94,38 @@ export const DEFAULT_RULES: RuleSettings = {
   enableNoFeiBonus: true,
   enableFourFeiWin: true,
   enableNoFlowerBaoFan: true,
+};
+
+// 维基百科马来西亚三人麻雀标准规则预设 (Wikipedia Standard Rules Preset)
+export const WIKIPEDIA_STANDARD_RULES: RuleSettings = {
+  ...DEFAULT_RULES,
+  minFan: 5,
+  maxFan: 10,
+  basePrice: 0.50,
+  multiplierType: 'linear',
+  baoFanThreshold: 10,
+  baoFanMultiplier: 20,
+  payoutMode: 'shooter_full_3x', // 维基百科标准：放铳包牌制 (放铳者一人支付 3×番数，另一家付 0)
+  flowerScoringMode: 'seat_matching', // 维基百科标准：门风花才得一番 (1=东, 2=南, 3=西, 4冬竹=任何玩家一番)
+  shooterPaysAll: true,
+  enableAnimalBiteBonus: false, // 维基百科中咬花属于玩家自定义特殊计分，正统只计每只动物1番
+  smallThreeDragonsFan: 4, // 维基百科小三元4番 (2刻+1底+小三元1番)
+  pureAllChowsFan: 4, // 维基百科全筒子平胡 4 番
+  flowerSetFan: 4, // 维基百科一套花 4 番
+  noFlowerBaoFan: 10, // 维基百科无花 10 番爆番
+  allHonorsFan: 10, // 维基百科全字牌 10 番爆番
+  bigFourWindsFan: 10, // 维基百科大四喜 10 番爆番
+  littleFourWindsFan: 10, // 维基百科小四喜 10 番爆番
+  bigThreeDragonsFan: 10, // 维基百科大三元 10 番爆番
+  thirteenOrphansFan: 10, // 维基百科十三幺 10 番爆番
+  nineGatesFan: 10, // 维基百科九莲宝灯 10 番爆番
+  fourKongsFan: 10, // 维基百科十八罗汉 10 番爆番
+  fourConcealedPungsFan: 10, // 维基百科坎坎胡 10 番爆番
+  fourFeiWinFan: 10, // 维基百科4飞 10 番爆番
+  tianHuFan: 10, // 维基百科天胡 10 番爆番
+  diHuFan: 10, // 维基百科地胡 10 番爆番
+  flowerHuFan: 10, // 维基百科八仙过海 10 番爆番
+  yaoJiuFan: 1, // 维基百科幺九 1 番
 };
 
 // 预设筹码底价供用户一键选择

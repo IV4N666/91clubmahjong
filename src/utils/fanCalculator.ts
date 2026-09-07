@@ -330,17 +330,51 @@ export function calculateMahjongScore(
     });
   }
 
-  // 花牌
+  // 花牌计番：支持维基百科正统门风花 (seat_matching) 与 休闲规则摸花全计番 (all_flowers)
   if (flowers.length > 0) {
-    fanItems.push({
-      id: 'flowers_count',
-      nameZh: `花牌 (${flowers.length}只)`,
-      nameEn: `Flowers (${flowers.length})`,
-      fan: flowers.length,
-      descriptionZh: `摸得【${flowers.map(f => f.nameZh).join('、')}】，共 ${flowers.length} 番。`,
-      descriptionEn: `Flowers collected (${flowers.length} Fan).`,
-      category: 'flower',
-    });
+    if (rules.flowerScoringMode === 'seat_matching') {
+      const seat = winningConditions.playerSeat || 'east';
+      const scoringFlowers: MahjongTileData[] = [];
+      const nonScoringFlowers: MahjongTileData[] = [];
+
+      flowers.forEach(f => {
+        const num = f.flowerNumber;
+        if (num === 4) {
+          // 4号冬/竹等于北，由于三人麻将无北位玩家，任何玩家获得均计一番
+          scoringFlowers.push(f);
+        } else if (num === 1 && seat === 'east') {
+          scoringFlowers.push(f);
+        } else if (num === 2 && seat === 'south') {
+          scoringFlowers.push(f);
+        } else if (num === 3 && seat === 'west') {
+          scoringFlowers.push(f);
+        } else {
+          nonScoringFlowers.push(f);
+        }
+      });
+
+      if (scoringFlowers.length > 0) {
+        fanItems.push({
+          id: 'flowers_seat_matching',
+          nameZh: `门风花牌 (${scoringFlowers.length}只)`,
+          nameEn: `Seat Flowers (${scoringFlowers.length})`,
+          fan: scoringFlowers.length,
+          descriptionZh: `吻合门风花牌【${scoringFlowers.map(f => f.nameZh).join('、')}】（1春梅=东、2夏兰=南、3秋菊=西、4冬竹=任何玩家），计 ${scoringFlowers.length} 番（维基百科标准）。${nonScoringFlowers.length > 0 ? ` [非本门花：${nonScoringFlowers.map(f => f.nameZh).join('、')}不计番]` : ''}`,
+          descriptionEn: `Seat matching flowers (+${scoringFlowers.length} Fan).`,
+          category: 'flower',
+        });
+      }
+    } else {
+      fanItems.push({
+        id: 'flowers_count',
+        nameZh: `花牌 (${flowers.length}只)`,
+        nameEn: `Flowers (${flowers.length})`,
+        fan: flowers.length,
+        descriptionZh: `摸得【${flowers.map(f => f.nameZh).join('、')}】，共 ${flowers.length} 番。`,
+        descriptionEn: `Flowers collected (${flowers.length} Fan).`,
+        category: 'flower',
+      });
+    }
   }
 
   // 一套花 (春夏秋冬 or 梅兰竹菊)
@@ -906,8 +940,11 @@ export function calculateMahjongScore(
   const extraBountiesPerPlayer = Number((biteCashTotal + feiCashTotal + kongCashTotal).toFixed(2));
 
   let shooterPays = 0;
+  let otherPays = 0;
   let eachPayIfZimo = 0;
   let winnerReceivedTotal = 0;
+
+  const payoutMode = rules.payoutMode || (rules.shooterPaysAll ? 'shooter_full_2x' : 'shooter_only_1x');
 
   if (winningConditions.isZimo) {
     // 自摸：另外两家每个人都要付出 scorePerUnit + extraBountiesPerPlayer
@@ -915,13 +952,25 @@ export function calculateMahjongScore(
     winnerReceivedTotal = Number((eachPayIfZimo * 2).toFixed(2));
   } else {
     // 出冲 (放铳)
-    if (rules.shooterPaysAll) {
-      // 出冲者一人包全家 (赔两份番数钱 + 两份额外即时现金)
+    if (payoutMode === 'shooter_full_3x') {
+      // 维基百科放铳包牌制：放铳玩家一人支付吃胡番数 x3，另一位玩家无需支付
+      shooterPays = Number((scorePerUnit * 3 + extraBountiesPerPlayer * 2).toFixed(2));
+      otherPays = 0;
+      winnerReceivedTotal = shooterPays;
+    } else if (payoutMode === 'shooter_ratio') {
+      // 维基百科放铳比例制：放铳玩家支付吃胡番数 x2，另一位玩家支付吃胡番数 x1
+      shooterPays = Number((scorePerUnit * 2 + extraBountiesPerPlayer).toFixed(2));
+      otherPays = Number((scorePerUnit * 1 + extraBountiesPerPlayer).toFixed(2));
+      winnerReceivedTotal = Number((shooterPays + otherPays).toFixed(2));
+    } else if (payoutMode === 'shooter_full_2x') {
+      // 现代大马常见包两家：放铳玩家一人包两家赔 2x，另一位玩家无需支付
       shooterPays = Number((scorePerUnit * 2 + extraBountiesPerPlayer * 2).toFixed(2));
+      otherPays = 0;
       winnerReceivedTotal = shooterPays;
     } else {
-      // 仅放铳者付一份番数钱 + 两份额外即时现金
-      shooterPays = Number((scorePerUnit + extraBountiesPerPlayer * 2).toFixed(2));
+      // shooter_only_1x: 仅放铳玩家付 1x，另一位玩家付 0
+      shooterPays = Number((scorePerUnit * 1 + extraBountiesPerPlayer * 2).toFixed(2));
+      otherPays = 0;
       winnerReceivedTotal = shooterPays;
     }
   }
@@ -939,8 +988,14 @@ export function calculateMahjongScore(
     : `${effectiveFan}番`;
   if (winningConditions.isZimo) {
     ruleSummary = `自摸 ${fanLabel}（底 RM ${basePrice.toFixed(2)}）：两家各付 RM ${eachPayIfZimo.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
+  } else if (payoutMode === 'shooter_full_3x') {
+    ruleSummary = `出冲 ${fanLabel}（维基包牌制 3×）：放炮者一人包全场付 3 倍 RM ${shooterPays.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
+  } else if (payoutMode === 'shooter_ratio') {
+    ruleSummary = `出冲 ${fanLabel}（维基比例制 2:1）：放炮者付 2 倍 RM ${shooterPays.toFixed(2)}，闲家付 1 倍 RM ${otherPays.toFixed(2)}，赢家总收 RM ${winnerReceivedTotal.toFixed(2)}${bonusNote}。`;
+  } else if (payoutMode === 'shooter_full_2x') {
+    ruleSummary = `出冲 ${fanLabel}（包两家 2×）：放炮者一人包两家付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
   } else {
-    ruleSummary = `出冲 ${fanLabel}：放炮者${rules.shooterPaysAll ? '一人包赔' : '出冲'}付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
+    ruleSummary = `出冲 ${fanLabel}：放炮者单付 RM ${shooterPays.toFixed(2)}${bonusNote}。`;
   }
 
   return {
@@ -952,6 +1007,7 @@ export function calculateMahjongScore(
       basePrice,
       winnerReceivedTotal,
       shooterPays,
+      otherPays,
       eachPayIfZimo,
       biteBonusEarned: Number((biteCashTotal * 2).toFixed(2)),
       feiCashEarned: Number((feiCashTotal * 2).toFixed(2)),

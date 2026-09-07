@@ -42,37 +42,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#0c2f1d]/95 backdrop-blur-md border-b border-emerald-800/60 shadow-lg px-2 py-2 sm:px-6 sm:py-2.5 w-full max-w-full overflow-x-hidden">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
-        {/* Logo & 标签页模式切换 */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <h1 className="font-extrabold text-base sm:text-lg bg-gradient-to-r from-amber-300 via-amber-200 to-emerald-100 bg-clip-text text-transparent tracking-wide whitespace-nowrap">
+        {/* Logo */}
+        <div className="flex items-center gap-2 shrink-0">
+          <h1 className="font-black text-base sm:text-lg bg-gradient-to-r from-amber-300 via-amber-200 to-emerald-100 bg-clip-text text-transparent tracking-wide whitespace-nowrap">
             91Club
           </h1>
-
-          {/* 模式切换器：算番助手 vs 试玩对战 */}
-          <div className="flex items-center bg-[#072416] p-0.5 rounded-xl border border-emerald-700/60 shadow-inner">
-            <button
-              type="button"
-              onClick={() => onSelectTab?.('calculator')}
-              className={`px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-                activeTab === 'calculator'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
-                  : 'text-emerald-300/80 hover:text-emerald-100'
-              }`}
-            >
-              <span>🧮 算番</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectTab?.('game')}
-              className={`px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-                activeTab === 'game'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
-                  : 'text-emerald-300/80 hover:text-emerald-100'
-              }`}
-            >
-              <span>🀄 对战</span>
-            </button>
-          </div>
         </div>
 
         {/* 顶部快捷操作 (全部纯图标，让手机端清空/刷新等所有功能完整展示) */}

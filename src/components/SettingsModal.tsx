@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RuleSettings } from '../types/mahjong';
-import { PRESET_BASE_PRICES, PRESET_FEI_PRICES } from '../constants/defaultRules';
+import { PRESET_BASE_PRICES, PRESET_FEI_PRICES, WIKIPEDIA_STANDARD_RULES } from '../constants/defaultRules';
 import {
   Settings,
   X,
@@ -10,6 +10,7 @@ import {
   Sliders,
   Award,
   Zap,
+  BookOpen,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -19,6 +20,8 @@ interface SettingsModalProps {
   onSaveRules: (newRules: RuleSettings) => void;
   onResetDefault: () => void;
   lang: 'zh' | 'en';
+  activeTab?: 'calculator' | 'game';
+  onSelectTab?: (tab: 'calculator' | 'game') => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -28,6 +31,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveRules,
   onResetDefault,
   lang,
+  activeTab,
+  onSelectTab,
 }) => {
   const [tempRules, setTempRules] = useState<RuleSettings>({ ...rules });
 
@@ -72,6 +77,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* 滚动配置表 */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-5 text-slate-100 flex-1 text-xs">
+          {/* 快捷预设与模块切换 */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setTempRules({ ...WIKIPEDIA_STANDARD_RULES })}
+              className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-700 hover:to-emerald-600 border border-amber-400/50 text-amber-200 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-95"
+            >
+              <BookOpen className="w-4 h-4 text-amber-300" />
+              <span>📚 一键套用维基百科标准规则 (5番起胡 / 10番爆番 / 包牌制3x / 门风花)</span>
+            </button>
+
+            {onSelectTab && (
+              <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3 space-y-2">
+                <span className="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
+                  🀄 功能模块切换
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectTab('calculator');
+                      onClose();
+                    }}
+                    className={`py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                      activeTab === 'calculator'
+                        ? 'bg-amber-500 text-slate-950 shadow font-black'
+                        : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                    }`}
+                  >
+                    <span>🧮 算番记账助手</span>
+                    {activeTab === 'calculator' && <span className="text-[10px]">(当前)</span>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectTab('game');
+                      onClose();
+                    }}
+                    className={`py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                      activeTab === 'game'
+                        ? 'bg-amber-500 text-slate-950 shadow font-black'
+                        : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                    }`}
+                  >
+                    <span>🀄 三人对战试玩</span>
+                    {activeTab === 'game' && <span className="text-[10px]">(当前)</span>}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 1. 底价设置 (Base Stake in RM) */}
           <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -319,6 +376,120 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* 3.1 放铳 (出冲) 计分与赔付方式 */}
+          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-2.5">
+            <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+              <Award className="w-4 h-4 text-emerald-400" />
+              {lang === 'zh' ? '放铳 (出冲) 计分与赔付方式' : 'Discard Shooter Payout Mode'}
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div
+                onClick={() => setTempRules({ ...tempRules, payoutMode: 'shooter_full_3x', shooterPaysAll: true })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  tempRules.payoutMode === 'shooter_full_3x'
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  维基包牌制 (一人赔 3×) 📚
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  维基百科经典规则：放铳者一人支付 3 倍吃胡番数，无辜闲家无需支付。
+                </p>
+              </div>
+
+              <div
+                onClick={() => setTempRules({ ...tempRules, payoutMode: 'shooter_ratio', shooterPaysAll: false })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  tempRules.payoutMode === 'shooter_ratio'
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  维基比例制 (放铳 2×, 闲家 1×) ⚖️
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  放铳玩家付 2 倍番数，未放铳闲家付 1 倍番数，赢家总收 3 倍。
+                </p>
+              </div>
+
+              <div
+                onClick={() => setTempRules({ ...tempRules, payoutMode: 'shooter_full_2x', shooterPaysAll: true })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  (tempRules.payoutMode === 'shooter_full_2x' || (!tempRules.payoutMode && tempRules.shooterPaysAll))
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  现代包两家 (一人包 2×) ⭐
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  大马民间常见打法：放铳者一人包两家赔 2 倍番数，无辜闲家付 0。
+                </p>
+              </div>
+
+              <div
+                onClick={() => setTempRules({ ...tempRules, payoutMode: 'shooter_only_1x', shooterPaysAll: false })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  tempRules.payoutMode === 'shooter_only_1x'
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  单付一人份 (放铳付 1×)
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  谁出冲谁付 1 倍番数，另一位闲家不付。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3.2 花牌计番模式 (Flower Scoring Mode) */}
+          <div className="bg-[#0b2919] border border-emerald-800/80 rounded-2xl p-3.5 space-y-2.5">
+            <span className="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+              <span>🌸</span>
+              {lang === 'zh' ? '花牌计番规则模式' : 'Flower Fan Rules'}
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div
+                onClick={() => setTempRules({ ...tempRules, flowerScoringMode: 'all_flowers' })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  (tempRules.flowerScoringMode !== 'seat_matching')
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  休闲全花制 (每张花牌 +1 番) ⭐
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  民间普遍休闲打法：摸到任何四季花或四君子花牌，每张均计 1 番。
+                </p>
+              </div>
+
+              <div
+                onClick={() => setTempRules({ ...tempRules, flowerScoringMode: 'seat_matching' })}
+                className={`p-2.5 rounded-xl border cursor-pointer transition ${
+                  tempRules.flowerScoringMode === 'seat_matching'
+                    ? 'bg-amber-950/80 border-amber-400 text-amber-100 shadow'
+                    : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                }`}
+              >
+                <div className="font-bold text-xs mb-1 text-amber-300">
+                  维基正统门风花 (1春梅=东, 2夏兰=南...) 📚
+                </div>
+                <p className="text-[10px] opacity-80 leading-relaxed">
+                  维基百科标准：只有吻合门风的花牌才计番（4号冬竹全家有效），非本门花不计番。
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* 4. 飞牌 (百搭) 结算模式与价格设置 */}

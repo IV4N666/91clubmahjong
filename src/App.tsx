@@ -405,7 +405,7 @@ export const App: React.FC = () => {
 
       {/* 主工作台 */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* 1. 当前手牌展示与胡牌条件 */}
+        {/* 1. 当前手牌展示与胡牌条件 (TOP: 手中持牌) */}
         <HandDisplay
           handTiles={handTiles}
           melds={melds}
@@ -421,7 +421,31 @@ export const App: React.FC = () => {
           totalTilesCount={totalRegularTilesCount}
         />
 
-        {/* 2. 新手打牌与听牌指导建议 (含真实活张与绝张检测) */}
+        {/* 2. 桌面公共出牌池 (TOP: 桌面出牌/堂子) */}
+        <DiscardPool
+          discardPool={discardPool}
+          onAddDiscardTile={handleAddDiscardTile}
+          onRemoveDiscardTile={handleRemoveDiscardTile}
+          onClearDiscardPool={handleClearDiscardPool}
+          handTiles={handTiles}
+          melds={melds}
+          lang={lang}
+        />
+
+        {/* 3. 选牌添加面板 (MIDDLE: 选牌添加区域 - 手牌/出牌池) */}
+        <TilePicker
+          onAddTile={handleAddTile}
+          onAddMeld={handleAddMeld}
+          onAddFlower={handleAddFlower}
+          onAddDiscardTile={handleAddDiscardTile}
+          handTiles={handTiles}
+          flowers={flowers}
+          melds={melds}
+          discardPool={discardPool}
+          lang={lang}
+        />
+
+        {/* 4. 新手打牌与听牌指导建议 (BOTTOM: 推荐打牌/听牌建议) */}
         <BeginnerHelper
           analysis={shantenAnalysis}
           rules={rules}
@@ -433,30 +457,6 @@ export const App: React.FC = () => {
               handleAddDiscardTile(tile); // 打出的牌自动落入桌面公共弃牌池
             }
           }}
-        />
-
-        {/* 3. 公共出牌池 (桌面弃牌 / 堂子 - 记录所有打出牌与绝张分析) */}
-        <DiscardPool
-          discardPool={discardPool}
-          onAddDiscardTile={handleAddDiscardTile}
-          onRemoveDiscardTile={handleRemoveDiscardTile}
-          onClearDiscardPool={handleClearDiscardPool}
-          handTiles={handTiles}
-          melds={melds}
-          lang={lang}
-        />
-
-        {/* 4. 选牌面板 (支持加入手牌 or 记入公共出牌池) */}
-        <TilePicker
-          onAddTile={handleAddTile}
-          onAddMeld={handleAddMeld}
-          onAddFlower={handleAddFlower}
-          onAddDiscardTile={handleAddDiscardTile}
-          handTiles={handTiles}
-          flowers={flowers}
-          melds={melds}
-          discardPool={discardPool}
-          lang={lang}
         />
       </main>
 

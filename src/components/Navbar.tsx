@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Sparkles,
   History,
+  QrCode,
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 
@@ -17,6 +18,7 @@ interface NavbarProps {
   onOpenSettings: () => void;
   onOpenRules: () => void;
   onOpenHistory: () => void;
+  onOpenQRCode: () => void;
   roundsCount: number;
   onOpenCamera: () => void;
   onClearHand: () => void;
@@ -31,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onOpenRules,
   onOpenHistory,
+  onOpenQRCode,
   roundsCount,
   onOpenCamera,
   onClearHand,
@@ -98,6 +101,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {roundsCount}
               </span>
             )}
+          </button>
+
+          {/* 扫码分享 */}
+          <button
+            type="button"
+            onClick={onOpenQRCode}
+            className="p-1.5 sm:px-2 sm:py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-amber-300 border border-emerald-700/50 flex items-center gap-1 text-xs transition"
+            title="手机扫码直接打开"
+          >
+            <QrCode className="w-4 h-4 text-amber-300" />
+            <span className="hidden sm:inline">{lang === 'zh' ? '扫码' : 'QR'}</span>
           </button>
 
           {/* 新手百科 */}

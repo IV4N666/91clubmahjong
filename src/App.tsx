@@ -24,6 +24,7 @@ import { CameraScanner } from './components/CameraScanner';
 import { SettingsModal } from './components/SettingsModal';
 import { RulesGuideModal } from './components/RulesGuideModal';
 import { HistoryModal } from './components/HistoryModal';
+import { QRCodeModal } from './components/QRCodeModal';
 
 const DEFAULT_PLAYERS: Player[] = [
   { id: 'p1', name: '玩家 1 (我)', seat: 'east' },
@@ -105,6 +106,7 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null);
 
   // 同步音效开关
@@ -356,6 +358,7 @@ export const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenRules={() => setIsRulesOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenQRCode={() => setIsQRCodeOpen(true)}
         roundsCount={rounds.length}
         onOpenCamera={() => setIsCameraOpen(true)}
         onClearHand={handleClearHand}
@@ -460,6 +463,13 @@ export const App: React.FC = () => {
       <RulesGuideModal
         isOpen={isRulesOpen}
         onClose={() => setIsRulesOpen(false)}
+        lang={lang}
+      />
+
+      {/* 扫码分享弹窗 */}
+      <QRCodeModal
+        isOpen={isQRCodeOpen}
+        onClose={() => setIsQRCodeOpen(false)}
         lang={lang}
       />
     </div>

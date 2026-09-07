@@ -11,20 +11,28 @@ import {
   Sparkles,
   LogIn,
   PlusCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { GameSeatIndex } from '../types/game';
+import { RuleSettings } from '../types/mahjong';
 import { multiplayerService, RoomPeerInfo } from '../utils/multiplayerService';
 
 interface RoomLobbyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartGame: (mode: 'solo' | 'multiplayer', players: { name: string; isAI: boolean; seat: GameSeatIndex }[]) => void;
+  rules: RuleSettings;
+  onStartGame: (
+    mode: 'solo' | 'multiplayer',
+    players: { name: string; isAI: boolean; seat: GameSeatIndex }[],
+    activeRules: RuleSettings
+  ) => void;
   initialRoomCode?: string;
 }
 
 export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
   isOpen,
   onClose,
+  rules,
   onStartGame,
   initialRoomCode = '',
 }) => {
@@ -34,6 +42,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [activeRules, setActiveRules] = useState<RuleSettings>(rules);
 
   // 房间内 3 位玩家座位状态
   const [roomPlayers, setRoomPlayers] = useState<RoomPeerInfo[]>([
@@ -52,8 +61,11 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
 
   // 注册 multiplayerService 监听
   useEffect(() => {
-    multiplayerService.onRoomUpdate = (players) => {
+    multiplayerService.onRoomUpdate = (players, hostRules) => {
       setRoomPlayers(players);
+      if (hostRules) {
+        setActiveRules(hostRules);
+      }
     };
 
     multiplayerService.onError = (err) => {
@@ -62,7 +74,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     };
 
     multiplayerService.onGameStart = (payload) => {
-      onStartGame('multiplayer', payload.players);
+      onStartGame('multiplayer', payload.players, payload.rules || activeRules);
       onClose();
     };
 
@@ -71,7 +83,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
       multiplayerService.onError = undefined;
       multiplayerService.onGameStart = undefined;
     };
-  }, [onStartGame, onClose]);
+  }, [onStartGame, onClose, activeRules]);
 
   if (!isOpen) return null;
 
@@ -85,7 +97,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     return code;
   };
 
-  // 创建房间
+  // 创建房间 (使用房主本机的 rules)
   const handleCreateRoom = async () => {
     const code = roomCode.trim() || generateRandomCode();
     setRoomCode(code);
@@ -93,12 +105,9 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
     setErrorMsg('');
     try {
       localStorage.setItem('mahjong_user_name', playerName);
-      await multiplayerService.createRoom(code, playerName);
-      setRoomPlayers([
-        { seat: 0, name: `${playerName} (房主)`, isHost: true, isAI: false, isReady: true },
-        { seat: 1, name: '电脑 1 (AI)', isHost: false, isAI: true, isReady: true },
-        { seat: 2, name: '电脑 2 (AI)', isHost: false, isAI: true, isReady: true },
-      ]);
+      await multiplayerService.createRoom(code, playerName, rules);
+      setRoomPlayers(multiplayerService.roomPlayers);
+      setActiveRules(rules);
       setView('inRoom');
     } catch (err: any) {
       setErrorMsg(err.message || '创建房间失败');
@@ -136,44 +145,25 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
 
   // 房主切换空座位为电脑AI或等待玩家
   const toggleSeatAI = (seatIdx: GameSeatIndex) => {
-    if (!multiplayerService.isHost) return;
-    setRoomPlayers(prev => {
-      const copy = [...prev];
-      const target = copy[seatIdx];
-      if (target.isHost) return prev;
-      const nextIsAI = !target.isAI;
-      copy[seatIdx] = {
-        ...target,
-        isAI: nextIsAI,
-        name: nextIsAI ? `电脑 ${seatIdx} (AI)` : '等待好友加入...',
-        isReady: nextIsAI,
-      };
-      multiplayerService.broadcast('ROOM_SYNC', { players: copy });
-      return copy;
-    });
+    multiplayerService.toggleSeatAI(seatIdx);
   };
 
   // 房主启动对战
   const handleStartMultiplayer = () => {
-    const activePlayers = roomPlayers.map((p, idx) => ({
-      name: p.name,
-      isAI: p.isAI,
-      seat: idx as GameSeatIndex,
-    }));
-
-    // 广播开局
-    multiplayerService.broadcast('GAME_START', { players: activePlayers });
-    onStartGame('multiplayer', activePlayers);
-    onClose();
+    multiplayerService.startGame();
   };
 
   // 单机立即开始 (无需网络)
   const handleStartSolo = () => {
-    onStartGame('solo', [
-      { name: `${playerName} (我)`, isAI: false, seat: 0 },
-      { name: '电脑 1 (对家)', isAI: true, seat: 1 },
-      { name: '电脑 2 (下家)', isAI: true, seat: 2 },
-    ]);
+    onStartGame(
+      'solo',
+      [
+        { name: `${playerName} (我)`, isAI: false, seat: 0 },
+        { name: '电脑 1 (对家)', isAI: true, seat: 1 },
+        { name: '电脑 2 (下家)', isAI: true, seat: 2 },
+      ],
+      rules
+    );
     onClose();
   };
 
@@ -251,7 +241,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                     <h3 className="font-bold text-amber-200 group-hover:text-amber-100 text-sm sm:text-base">
                       创建好友房间 (房主)
                     </h3>
-                    <p className="text-xs text-emerald-300/80">生成 6 位房间码与链接，邀请好友一起玩</p>
+                    <p className="text-xs text-emerald-300/80">生成房间码与链接，按房主规则开战</p>
                   </div>
                 </div>
                 <span className="text-amber-400 text-xs font-bold shrink-0">开房 →</span>
@@ -312,8 +302,22 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                   </button>
                 </div>
                 <p className="text-[11px] text-emerald-400/80">
-                  创建成功后，好友输入该代码或点击分享链接即可进入。
+                  创建成功后，好友输入该代码或点击分享链接即可进入，全员统一遵守您的底价与番数设置。
                 </p>
+              </div>
+
+              {/* 房主规则预览卡片 */}
+              <div className="bg-emerald-950/90 border border-emerald-700/60 rounded-xl p-3 text-xs space-y-1.5">
+                <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>此房间将同步您设置的规则：</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-emerald-300/80">
+                  <div>底价：<span className="text-white font-bold">RM {rules.basePrice.toFixed(2)}</span></div>
+                  <div>起胡：<span className="text-white font-bold">{rules.minFan} 番起胡</span></div>
+                  <div>倍数：<span className="text-white font-bold">{rules.multiplierType === 'linear' ? '1番1底' : '每番翻倍'}</span></div>
+                  <div>飞牌：<span className="text-white font-bold">{rules.feiCalculationMode === 'cash' ? `现金 RM ${rules.feiCashAmount}` : '+1番'}</span></div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -394,6 +398,23 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                 </div>
               </div>
 
+              {/* 规则生效提示栏 (全员可见) */}
+              <div className="bg-emerald-950/80 border border-emerald-700/60 rounded-xl p-3 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-amber-300 font-bold">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>本局规则（已由房主制定）</span>
+                  </span>
+                  <span className="text-emerald-300 font-black">{activeRules.minFan} 番起胡</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-emerald-300/80">
+                  <div>底价：<span className="text-white font-bold">RM {activeRules.basePrice.toFixed(2)}</span></div>
+                  <div>算番模式：<span className="text-white font-bold">{activeRules.multiplierType === 'linear' ? '1番1底' : '每番翻倍'}</span></div>
+                  <div>飞牌结算：<span className="text-white font-bold">{activeRules.feiCalculationMode === 'cash' ? `每张 RM ${activeRules.feiCashAmount}` : '+1番/张'}</span></div>
+                  <div>开杠收钱：<span className="text-white font-bold">{activeRules.enableKongImmediateCash ? `即收 ${activeRules.kongImmediateFan}番` : '关闭'}</span></div>
+                </div>
+              </div>
+
               {/* 3 个座位卡片 */}
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold text-emerald-300 flex items-center justify-between">
@@ -424,6 +445,11 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                           {p.isHost && (
                             <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded">
                               房主
+                            </span>
+                          )}
+                          {!p.isAI && !p.isHost && (
+                            <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded">
+                              好友已进入
                             </span>
                           )}
                         </div>
@@ -460,7 +486,7 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                   </button>
                 ) : (
                   <div className="py-3 px-4 rounded-xl bg-emerald-950/80 border border-emerald-700 text-center text-xs text-amber-300 animate-pulse font-medium">
-                    ⏳ 已进入房间，等待房主开始对局...
+                    ⏳ 已连接房主，准备完毕，等待房主点击开始...
                   </div>
                 )}
               </div>

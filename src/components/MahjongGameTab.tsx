@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Sparkles,
@@ -15,6 +15,7 @@ import {
   Info,
   Layers,
   HelpCircle,
+  CheckCircle,
 } from 'lucide-react';
 import {
   MahjongTileData,
@@ -58,7 +59,10 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   onRecordRoundToLedger,
   onOpenRules,
 }) => {
-  // 1. 对局基本状态
+  // 1. 规则状态：支持遵循房主同步过来的规则
+  const [activeGameRules, setActiveGameRules] = useState<RuleSettings>(rules);
+
+  // 2. 对局基本状态
   const [roundNumber, setRoundNumber] = useState(1);
   const [dealerIndex, setDealerIndex] = useState<GameSeatIndex>(0);
   const [currentTurn, setCurrentTurn] = useState<GameSeatIndex>(0);
@@ -123,11 +127,15 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   const [settlement, setSettlement] = useState<RoundSettlement | null>(null);
   const [isRecorded, setIsRecorded] = useState(false);
 
-  // 房间大厅弹窗
+  // 房间大厅弹窗与联机模式
+  const [initialRoomCode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room') || '';
+  });
   const [isLobbyOpen, setIsLobbyOpen] = useState(false);
   const [gameMode, setGameMode] = useState<'solo' | 'multiplayer'>('solo');
 
-  // 游戏速度: 'normal' (1000ms) / 'fast' (350ms)
+  // 游戏速度: 'normal' (900ms) / 'fast' (350ms)
   const [gameSpeed, setGameSpeed] = useState<'normal' | 'fast'>('normal');
 
   // 提示信息条
@@ -136,7 +144,23 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   // AI 计时器引用
   const aiTimerRef = useRef<any>(null);
 
-  // 获取桌面所有已见公共牌 (用于向听与 outs 分析)
+  // 同步外部 rules (若自身是房主或单机)
+  useEffect(() => {
+    if (!multiplayerService.isHost && multiplayerService.hostRules) {
+      setActiveGameRules(multiplayerService.hostRules);
+    } else {
+      setActiveGameRules(rules);
+    }
+  }, [rules]);
+
+  // 若带房间码打开，自动弹出联机大厅
+  useEffect(() => {
+    if (initialRoomCode) {
+      setIsLobbyOpen(true);
+    }
+  }, [initialRoomCode]);
+
+  // 获取桌面所有已见公共牌
   const allDiscards = useMemo(() => {
     return players.flatMap(p => p.discards);
   }, [players]);
@@ -149,10 +173,52 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   }, [players, mySeatIndex, allDiscards]);
 
   // --------------------------------------------------------------------------
+  // 房主同步广播状态给所有客端好友
+  // --------------------------------------------------------------------------
+  const broadcastSync = useCallback((
+    updatedWall: GameTile[],
+    updatedPlayers: GamePlayer[],
+    turn: GameSeatIndex,
+    currentPhase: 'idle' | 'playing' | 'claimWindow' | 'roundOver',
+    lastDiscardTile: { playerIndex: GameSeatIndex; tile: GameTile } | null,
+    claimPrompts: Record<number, any>,
+    settle: RoundSettlement | null,
+    banner: string
+  ) => {
+    if (gameMode !== 'multiplayer' || !multiplayerService.isHost) return;
+
+    multiplayerService.broadcast('GAME_STATE_SYNC', {
+      wallCount: updatedWall.length,
+      currentTurn: turn,
+      phase: currentPhase,
+      lastDiscard: lastDiscardTile,
+      players: updatedPlayers,
+      claimPrompts,
+      settlement: settle,
+      bannerMsg: banner,
+    });
+  }, [gameMode]);
+
+  // --------------------------------------------------------------------------
   // 初始化或开启全新对局
   // --------------------------------------------------------------------------
-  const startNewGame = (customPlayers?: { name: string; isAI: boolean; seat: GameSeatIndex }[]) => {
+  const startNewGame = (
+    customPlayers?: { name: string; isAI: boolean; seat: GameSeatIndex }[],
+    customRules?: RuleSettings
+  ) => {
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+
+    const effectiveRules = customRules || activeGameRules;
+    if (customRules) {
+      setActiveGameRules(customRules);
+    }
+
+    // 设置我自己的座位
+    if (multiplayerService.isHost) {
+      setMySeatIndex(0);
+    } else if (gameMode === 'multiplayer') {
+      setMySeatIndex(multiplayerService.mySeat);
+    }
 
     // 1. 生成 84 张牌并充分洗牌
     const fullDeck = shuffleDeck(generateMalaysia3PDeck());
@@ -161,7 +227,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     const initialHands: GameTile[][] = [[], [], []];
     const initialFlowers: GameTile[][] = [[], [], []];
 
-    // 庄家先抓 14 张
+    // 庄家抓 14 张
     for (let i = 0; i < 14; i++) {
       initialHands[dealerIndex].push(fullDeck.pop()!);
     }
@@ -210,7 +276,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       : `开局就绪！轮到 [${newPlayers[dealerIndex].name}] 出牌`;
     setBannerMsg(msg);
 
-    // 检查庄家起手是否有天胡或4飞
+    // 房主同步广播开局公共状态
+    broadcastSync(
+      replaced.wall,
+      newPlayers,
+      dealerIndex,
+      'playing',
+      null,
+      {},
+      null,
+      msg
+    );
+
+    // 检查庄家起手天胡或4飞
     const dealerPlayer = newPlayers[dealerIndex];
     const canDealerWin = checkCanPlayerWin(
       dealerPlayer.hand,
@@ -219,13 +297,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       undefined,
       true,
       dealerPlayer.wind,
-      rules
+      effectiveRules
     );
 
     if (canDealerWin.canWin && canDealerWin.calcResult) {
       if (dealerIndex === mySeatIndex) {
         setBannerMsg('🎉 恭喜！起手天胡/满天飞达成，可直接宣胡！');
-      } else {
+      } else if (dealerPlayer.isAI) {
         // AI 天胡
         setTimeout(() => {
           handleDeclareWin(dealerIndex, 'zimo', undefined, canDealerWin.calcResult!);
@@ -235,18 +313,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     }
 
     // 若庄家是 AI，触发 AI 出牌
-    if (dealerPlayer.isAI) {
+    if (dealerPlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
       scheduleAITurn(dealerIndex, newPlayers, replaced.wall);
     }
   };
 
   // --------------------------------------------------------------------------
-  // 出牌逻辑 (玩家或 AI)
+  // 出牌逻辑
   // --------------------------------------------------------------------------
   const handleDiscardTile = (playerIndex: GameSeatIndex, tile: GameTile) => {
     soundFx.playTileClick();
 
-    // 1. 从该玩家手中移除该牌，并放入该玩家出牌河
+    // 1. 从手牌中移除，放入出牌河
+    let nextPlayers: GamePlayer[] = [];
     setPlayers(prev => {
       const copy = [...prev];
       const p = copy[playerIndex];
@@ -257,20 +336,22 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         handCount: nextHand.length,
         discards: [...p.discards, tile],
       };
+      nextPlayers = copy;
       return copy;
     });
 
-    setLastDiscard({ playerIndex, tile });
+    const newLastDiscard = { playerIndex, tile };
+    setLastDiscard(newLastDiscard);
 
-    // 2. 检查另外 2 位玩家是否能 胡 / 杠 / 碰 该张牌
+    // 2. 检查另外 2 位玩家是否能 胡 / 杠 / 碰
     const otherSeats = ([0, 1, 2] as GameSeatIndex[]).filter(s => s !== playerIndex);
 
+    const promptsBySeat: Record<number, any> = {};
     let someoneCanClaim = false;
 
     for (const seat of otherSeats) {
-      const targetPlayer = players[seat];
+      const targetPlayer = (nextPlayers.length > 0 ? nextPlayers : players)[seat];
 
-      // 检查胡 (出冲胡)
       const winCheck = checkCanPlayerWin(
         targetPlayer.hand,
         targetPlayer.melds,
@@ -278,13 +359,9 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         tile,
         false,
         targetPlayer.wind,
-        rules
+        activeGameRules
       );
-
-      // 检查杠 (明杠)
       const kongCheck = checkCanPlayerKong(targetPlayer.hand, targetPlayer.melds, tile);
-
-      // 检查碰
       const pongCheck = checkCanPlayerPong(targetPlayer.hand, tile);
 
       const availableActions: ('pong' | 'kong' | 'win')[] = [];
@@ -294,20 +371,20 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
       if (availableActions.length > 0) {
         someoneCanClaim = true;
+        promptsBySeat[seat] = {
+          actions: availableActions,
+          tile,
+          fromPlayerIndex: playerIndex,
+        };
 
         if (seat === mySeatIndex) {
-          // 本机真人玩家满足吃碰杠胡条件 -> 弹出高亮操作面板
+          // 本机真人玩家满足吃碰杠胡条件
           soundFx.playWin();
           setPhase('claimWindow');
-          setClaimPrompt({
-            actions: availableActions,
-            tile,
-            fromPlayerIndex: playerIndex,
-          });
+          setClaimPrompt(promptsBySeat[seat]);
           setBannerMsg(`对家打出 [${tile.nameZh}]，你可以进行操作！`);
-          return; // 暂停等待玩家抉择
-        } else {
-          // AI 玩家满足条件 -> AI 自动决策
+        } else if (targetPlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+          // AI 玩家自动响应
           const aiChoice = decideAIClaim(availableActions, targetPlayer.hand, targetPlayer.melds, tile);
           if (aiChoice === 'win') {
             handleDeclareWin(seat, 'discard', playerIndex, winCheck.calcResult!);
@@ -323,7 +400,22 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       }
     }
 
-    // 3. 若无人碰/杠/胡，牌局流转到下一位玩家
+    if (someoneCanClaim) {
+      // 广播给所有客端操作窗口
+      broadcastSync(
+        wall,
+        nextPlayers.length > 0 ? nextPlayers : players,
+        playerIndex,
+        'claimWindow',
+        newLastDiscard,
+        promptsBySeat,
+        null,
+        `[${(nextPlayers.length > 0 ? nextPlayers : players)[playerIndex].name}] 打出 [${tile.nameZh}]`
+      );
+      return;
+    }
+
+    // 3. 若无人碰杠胡，流转到下一位
     advanceToNextTurn((playerIndex + 1) % 3 as GameSeatIndex);
   };
 
@@ -335,7 +427,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     setPhase('playing');
     setCurrentTurn(nextSeat);
 
-    // 检查流局 (荒牌)：牌墙摸尽
+    // 检查荒牌
     if (wall.length === 0) {
       handleDrawGame();
       return;
@@ -357,6 +449,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     currentHand.push(drawn);
     setWall(newWall);
 
+    let updatedPlayers: GamePlayer[] = [];
     setPlayers(prev => {
       const copy = [...prev];
       copy[nextSeat] = {
@@ -365,11 +458,25 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         handCount: currentHand.length,
         flowers: currentFlowers,
       };
+      updatedPlayers = copy;
       return copy;
     });
 
-    const activePlayer = players[nextSeat];
-    setBannerMsg(`轮到 [${activePlayer.name}] 摸牌 (${drawn.nameZh})`);
+    const activePlayer = (updatedPlayers.length > 0 ? updatedPlayers : players)[nextSeat];
+    const banner = `轮到 [${activePlayer.name}] 摸牌 (${drawn.nameZh})`;
+    setBannerMsg(banner);
+
+    // 房主同步广播
+    broadcastSync(
+      newWall,
+      updatedPlayers.length > 0 ? updatedPlayers : players,
+      nextSeat,
+      'playing',
+      lastDiscard,
+      {},
+      null,
+      banner
+    );
 
     // 检查自摸胡
     const zimoCheck = checkCanPlayerWin(
@@ -379,14 +486,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       undefined,
       true,
       activePlayer.wind,
-      rules
+      activeGameRules
     );
 
     if (zimoCheck.canWin && zimoCheck.calcResult) {
       if (nextSeat === mySeatIndex) {
         setBannerMsg('🎉 恭喜！手牌满足自摸起胡，可点击【自摸胡】！');
-      } else {
-        // AI 自摸胡
+      } else if (activePlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
         setTimeout(() => {
           handleDeclareWin(nextSeat, 'zimo', undefined, zimoCheck.calcResult!);
         }, 800);
@@ -394,9 +500,9 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       }
     }
 
-    // 若是 AI 回合，计划 AI 出牌
-    if (activePlayer.isAI) {
-      scheduleAITurn(nextSeat, players, newWall);
+    // 若是 AI 回合，调度 AI 出牌
+    if (activePlayer.isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+      scheduleAITurn(nextSeat, updatedPlayers.length > 0 ? updatedPlayers : players, newWall);
     }
   };
 
@@ -411,7 +517,6 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       const p = currentPlayers[aiSeat];
       if (!p || p.hand.length === 0) return;
 
-      // 智能挑一张牌打出
       const tileToDiscard = chooseSmartAIDiscard(p.hand, p.melds);
       handleDiscardTile(aiSeat, tileToDiscard);
     }, delay);
@@ -422,10 +527,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   // --------------------------------------------------------------------------
   const executePong = (seat: GameSeatIndex, tile: GameTile) => {
     soundFx.playTileClick();
+    let updatedPlayers: GamePlayer[] = [];
+
     setPlayers(prev => {
       const copy = [...prev];
       const p = copy[seat];
-      // 从手牌移走 2 张相同的牌
       const remainingHand: GameTile[] = [];
       let removedCount = 0;
       for (const t of p.hand) {
@@ -448,17 +554,29 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         handCount: remainingHand.length,
         melds: [...p.melds, newMeld],
       };
+      updatedPlayers = copy;
       return copy;
     });
 
     setCurrentTurn(seat);
     setClaimPrompt(null);
     setPhase('playing');
-    setBannerMsg(`[${players[seat].name}] 碰了 [${tile.nameZh}]！请出牌`);
+    const banner = `[${players[seat].name}] 碰了 [${tile.nameZh}]！请出牌`;
+    setBannerMsg(banner);
 
-    // 若是 AI 碰了，继续让 AI 挑一张打出
-    if (players[seat].isAI) {
-      scheduleAITurn(seat, players, wall);
+    broadcastSync(
+      wall,
+      updatedPlayers.length > 0 ? updatedPlayers : players,
+      seat,
+      'playing',
+      null,
+      {},
+      null,
+      banner
+    );
+
+    if (players[seat].isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+      scheduleAITurn(seat, updatedPlayers.length > 0 ? updatedPlayers : players, wall);
     }
   };
 
@@ -469,6 +587,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     soundFx.playTileClick();
     let newWall = [...wall];
     let replacementTile = newWall.pop();
+    let updatedPlayers: GamePlayer[] = [];
 
     setPlayers(prev => {
       const copy = [...prev];
@@ -511,6 +630,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         handCount: remainingHand.length,
         melds: [...p.melds, newMeld],
       };
+      updatedPlayers = copy;
       return copy;
     });
 
@@ -518,15 +638,27 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     setCurrentTurn(seat);
     setClaimPrompt(null);
     setPhase('playing');
-    setBannerMsg(`[${players[seat].name}] 杠了 [${tile.nameZh}]！摸补牌后请出牌`);
+    const banner = `[${players[seat].name}] 杠了 [${tile.nameZh}]！摸补牌后请出牌`;
+    setBannerMsg(banner);
 
-    if (players[seat].isAI) {
-      scheduleAITurn(seat, players, newWall);
+    broadcastSync(
+      newWall,
+      updatedPlayers.length > 0 ? updatedPlayers : players,
+      seat,
+      'playing',
+      null,
+      {},
+      null,
+      banner
+    );
+
+    if (players[seat].isAI && (gameMode !== 'multiplayer' || multiplayerService.isHost)) {
+      scheduleAITurn(seat, updatedPlayers.length > 0 ? updatedPlayers : players, newWall);
     }
   };
 
   // --------------------------------------------------------------------------
-  // 宣胡结算 (自摸或出冲)
+  // 宣胡结算
   // --------------------------------------------------------------------------
   const handleDeclareWin = (
     winnerIndex: GameSeatIndex,
@@ -552,7 +684,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         roundWind: 'east',
         isShooterDouble: true,
       };
-      calc = calculateMahjongScore(winner.hand, winner.melds, winner.flowers, conditions, rules);
+      calc = calculateMahjongScore(winner.hand, winner.melds, winner.flowers, conditions, activeGameRules);
     }
 
     const settle: RoundSettlement = {
@@ -565,7 +697,19 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
     setSettlement(settle);
     setPhase('roundOver');
-    setBannerMsg(`🏆 [${winner.name}] ${winType === 'zimo' ? '自摸胡牌' : '胡牌'}！(${calc.totalFan} 番)`);
+    const banner = `🏆 [${winner.name}] ${winType === 'zimo' ? '自摸胡牌' : '胡牌'}！(${calc.totalFan} 番)`;
+    setBannerMsg(banner);
+
+    broadcastSync(
+      wall,
+      players,
+      winnerIndex,
+      'roundOver',
+      lastDiscard,
+      {},
+      settle,
+      banner
+    );
   };
 
   // --------------------------------------------------------------------------
@@ -573,7 +717,18 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   // --------------------------------------------------------------------------
   const handleDrawGame = () => {
     setPhase('roundOver');
-    setBannerMsg('牌墙已摸完，本局流局（荒牌）！');
+    const banner = '牌墙已摸完，本局流局（荒牌）！';
+    setBannerMsg(banner);
+    broadcastSync(
+      wall,
+      players,
+      currentTurn,
+      'roundOver',
+      lastDiscard,
+      {},
+      null,
+      banner
+    );
   };
 
   // --------------------------------------------------------------------------
@@ -630,7 +785,6 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   // --------------------------------------------------------------------------
   const handleNextRound = () => {
     setRoundNumber(prev => prev + 1);
-    // 若庄家没胡，下家当庄
     if (settlement && settlement.winnerIndex !== dealerIndex) {
       setDealerIndex((prev: GameSeatIndex) => ((prev + 1) % 3) as GameSeatIndex);
     }
@@ -652,7 +806,78 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     });
   };
 
-  // 开局初次启动
+  // --------------------------------------------------------------------------
+  // 监听联机消息协议 (客端与房主)
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    multiplayerService.onGameStateSync = (payload) => {
+      if (payload.wallCount !== undefined) {
+        setWall(new Array(payload.wallCount).fill(null) as any);
+      }
+      if (payload.currentTurn !== undefined) {
+        setCurrentTurn(payload.currentTurn);
+      }
+      if (payload.phase !== undefined) {
+        setPhase(payload.phase);
+      }
+      if (payload.lastDiscard !== undefined) {
+        setLastDiscard(payload.lastDiscard);
+      }
+      if (payload.players) {
+        setPlayers(payload.players);
+      }
+      if (payload.settlement !== undefined) {
+        setSettlement(payload.settlement);
+      }
+      if (payload.bannerMsg) {
+        setBannerMsg(payload.bannerMsg);
+      }
+
+      // 检查分配给本机座位的操作提示
+      const mySeat = multiplayerService.mySeat;
+      if (payload.claimPrompts && payload.claimPrompts[mySeat]) {
+        soundFx.playWin();
+        setClaimPrompt(payload.claimPrompts[mySeat]);
+      } else {
+        setClaimPrompt(null);
+      }
+    };
+
+    // 房主接收客端操作
+    multiplayerService.onPlayerAction = (action) => {
+      if (action.actionType === 'PLAYER_DISCARD' && action.payload?.tile) {
+        handleDiscardTile(action.seat, action.payload.tile);
+      } else if (action.actionType === 'PLAYER_CLAIM') {
+        const claim = action.payload?.claimAction;
+        const tile = action.payload?.tile;
+        if (claim === 'pong' && tile) {
+          executePong(action.seat, tile);
+        } else if (claim === 'kong' && tile) {
+          executeKong(action.seat, tile, 'ming');
+        } else if (claim === 'win') {
+          const winCheck = checkCanPlayerWin(
+            players[action.seat].hand,
+            players[action.seat].melds,
+            players[action.seat].flowers,
+            tile,
+            false,
+            players[action.seat].wind,
+            activeGameRules
+          );
+          handleDeclareWin(action.seat, 'discard', lastDiscard?.playerIndex, winCheck.calcResult);
+        } else if (claim === 'pass') {
+          advanceToNextTurn(((lastDiscard?.playerIndex ?? 0) + 1) % 3 as GameSeatIndex);
+        }
+      }
+    };
+
+    return () => {
+      multiplayerService.onGameStateSync = undefined;
+      multiplayerService.onPlayerAction = undefined;
+    };
+  }, [players, activeGameRules, lastDiscard, mySeatIndex]);
+
+  // 初次载入
   useEffect(() => {
     startNewGame();
     return () => {
@@ -660,20 +885,25 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     };
   }, []);
 
-  const me = players[mySeatIndex];
+  const me = players[mySeatIndex] || players[0];
   const isMyTurn = currentTurn === mySeatIndex && phase === 'playing';
 
-  // 检查本机玩家在自己摸牌回合是否可自摸胡
+  // 检查本机玩家自摸胡
   const myZimoCheck = useMemo(() => {
     if (!isMyTurn || !me || me.hand.length + me.melds.length * 3 < 14) return null;
-    return checkCanPlayerWin(me.hand, me.melds, me.flowers, undefined, true, me.wind, rules);
-  }, [isMyTurn, me, rules]);
+    return checkCanPlayerWin(me.hand, me.melds, me.flowers, undefined, true, me.wind, activeGameRules);
+  }, [isMyTurn, me, activeGameRules]);
 
-  // 检查本机玩家在自己回合是否可暗杠或补杠
+  // 检查本机玩家暗杠/补杠
   const mySelfKongCheck = useMemo(() => {
     if (!isMyTurn || !me) return { canKong: false };
     return checkCanPlayerKong(me.hand, me.melds);
   }, [isMyTurn, me]);
+
+  // 对手座位 (除我以外的另外两位)
+  const opponentSeats = useMemo(() => {
+    return ([0, 1, 2] as GameSeatIndex[]).filter(s => s !== mySeatIndex);
+  }, [mySeatIndex]);
 
   return (
     <div className="flex flex-col space-y-3 sm:space-y-4 max-w-5xl mx-auto w-full">
@@ -689,8 +919,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                 三人麻将第 {roundNumber} 局
               </h2>
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-900 border border-emerald-600 text-emerald-200 font-semibold">
-                东风圈 · 庄家: {players[dealerIndex].name}
+                东风圈 · 庄家: {players[dealerIndex]?.name || '东家'}
               </span>
+              {gameMode === 'multiplayer' && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold">
+                  联机模式 (遵从房主规则)
+                </span>
+              )}
             </div>
             <p className="text-xs text-emerald-300/80 mt-0.5 font-medium flex items-center gap-1.5">
               <span>{bannerMsg}</span>
@@ -700,7 +935,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
         {/* 右侧快捷设置 */}
         <div className="flex items-center gap-2">
-          {/* 联机房间大厅 */}
+          {/* 联机开房 / 切换房间 */}
           <button
             type="button"
             onClick={() => setIsLobbyOpen(true)}
@@ -738,10 +973,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         {/* 桌布细致纹理背景 */}
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
-        {/* 顶部对手区域 (电脑 1 与 电脑 2) */}
+        {/* 顶部对手区域 (展现另外两位玩家) */}
         <div className="grid grid-cols-2 gap-3 relative z-10">
-          {[1, 2].map(seatIdx => {
-            const opponent = players[seatIdx as GameSeatIndex];
+          {opponentSeats.map((seatIdx) => {
+            const opponent = players[seatIdx];
+            if (!opponent) return null;
             const isTurn = currentTurn === seatIdx && phase === 'playing';
             return (
               <div
@@ -755,7 +991,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="w-6 h-6 rounded-full bg-emerald-800 border border-emerald-600 flex items-center justify-center text-xs">
-                      {opponent.isAI ? '🤖' : '👤'}
+                      {opponent.isAI ? '🤖' : opponent.isHost ? '👑' : '👤'}
                     </span>
                     <span className="font-bold text-xs sm:text-sm text-slate-100 truncate max-w-[100px] sm:max-w-[140px]">
                       {opponent.name}
@@ -767,13 +1003,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                     )}
                   </div>
                   <span className="text-[10px] text-emerald-300/80">
-                    {seatIdx === 1 ? '南风' : '西风'}
+                    {seatIdx === 0 ? '东风' : seatIdx === 1 ? '南风' : '西风'}
                   </span>
                 </div>
 
                 {/* 对手暗牌展示 (牌背) */}
                 <div className="flex flex-wrap gap-0.5 sm:gap-1 mb-2 items-center">
-                  {Array.from({ length: opponent.handCount }).map((_, i) => (
+                  {Array.from({ length: opponent.handCount || opponent.hand.length }).map((_, i) => (
                     <MahjongTile key={i} size="xs" isBack />
                   ))}
                 </div>
@@ -822,7 +1058,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
             <div className="text-xs font-bold text-slate-200 flex items-center gap-1">
               <span>当前:</span>
               <span className="text-amber-300">
-                {players[currentTurn].name}
+                {players[currentTurn]?.name}
               </span>
               {currentTurn === mySeatIndex && (
                 <span className="text-[10px] px-1.5 py-0.5 bg-amber-500 text-slate-950 font-black rounded-full animate-bounce">
@@ -832,7 +1068,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
             </div>
           </div>
 
-          {/* 三家公共弃牌河 (三条河或者混合池) */}
+          {/* 三家公共弃牌河 */}
           <div className="w-full max-w-2xl bg-black/25 border border-emerald-800/60 rounded-2xl p-2.5 sm:p-3 min-h-[90px] max-h-[140px] overflow-y-auto">
             <div className="flex items-center justify-between text-[11px] text-emerald-300/80 mb-1.5 px-1">
               <span>桌面出牌河 (共 {allDiscards.length} 张)</span>
@@ -873,7 +1109,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                 {me.name}
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900 text-emerald-200 font-semibold">
-                东风
+                {me.wind === 'east' ? '东风' : me.wind === 'south' ? '南风' : '西风'}
               </span>
               {dealerIndex === mySeatIndex && (
                 <span className="text-[10px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.5 rounded">
@@ -882,8 +1118,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
               )}
             </div>
 
-            {/* 一键理牌与听牌提示 */}
+            {/* 一键理牌与规则简报 */}
             <div className="flex items-center gap-2">
+              <span className="text-[10px] text-amber-300/80 hidden sm:inline-block">
+                规则：底价 RM{activeGameRules.basePrice.toFixed(2)} · {activeGameRules.minFan}番起胡
+              </span>
               <button
                 type="button"
                 onClick={handleSortMyHand}
@@ -922,7 +1161,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
             </div>
           )}
 
-          {/* 我的手牌 (可交互点击打出) */}
+          {/* 我的手牌 (点击打出) */}
           <div>
             <div className="flex items-center justify-between text-[11px] text-emerald-300/80 mb-1.5">
               <span>手牌 ({me.hand.length} 张) - 点击可直接打出</span>
@@ -940,7 +1179,12 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                   size="md"
                   onClick={() => {
                     if (isMyTurn) {
-                      handleDiscardTile(mySeatIndex, tile);
+                      if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                        // 客端发送给房主
+                        multiplayerService.sendToHost('PLAYER_DISCARD', { tile });
+                      } else {
+                        handleDiscardTile(mySeatIndex, tile);
+                      }
                     }
                   }}
                   disabled={!isMyTurn}
@@ -982,16 +1226,21 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const winCheck = checkCanPlayerWin(
-                      me.hand,
-                      me.melds,
-                      me.flowers,
-                      claimPrompt.tile,
-                      false,
-                      me.wind,
-                      rules
-                    );
-                    handleDeclareWin(mySeatIndex, 'discard', claimPrompt.fromPlayerIndex, winCheck.calcResult);
+                    if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                      multiplayerService.sendToHost('PLAYER_CLAIM', { claimAction: 'win', tile: claimPrompt.tile });
+                      setClaimPrompt(null);
+                    } else {
+                      const winCheck = checkCanPlayerWin(
+                        me.hand,
+                        me.melds,
+                        me.flowers,
+                        claimPrompt.tile,
+                        false,
+                        me.wind,
+                        activeGameRules
+                      );
+                      handleDeclareWin(mySeatIndex, 'discard', claimPrompt.fromPlayerIndex, winCheck.calcResult);
+                    }
                   }}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm shadow-lg transition active:scale-95 animate-pulse"
                 >
@@ -1002,7 +1251,14 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
               {claimPrompt.actions.includes('kong') && (
                 <button
                   type="button"
-                  onClick={() => executeKong(mySeatIndex, claimPrompt.tile, 'ming')}
+                  onClick={() => {
+                    if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                      multiplayerService.sendToHost('PLAYER_CLAIM', { claimAction: 'kong', tile: claimPrompt.tile });
+                      setClaimPrompt(null);
+                    } else {
+                      executeKong(mySeatIndex, claimPrompt.tile, 'ming');
+                    }
+                  }}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-lg transition active:scale-95"
                 >
                   ⚡ 杠！
@@ -1012,7 +1268,14 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
               {claimPrompt.actions.includes('pong') && (
                 <button
                   type="button"
-                  onClick={() => executePong(mySeatIndex, claimPrompt.tile)}
+                  onClick={() => {
+                    if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                      multiplayerService.sendToHost('PLAYER_CLAIM', { claimAction: 'pong', tile: claimPrompt.tile });
+                      setClaimPrompt(null);
+                    } else {
+                      executePong(mySeatIndex, claimPrompt.tile);
+                    }
+                  }}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm shadow-lg transition active:scale-95"
                 >
                   🟢 碰！
@@ -1022,7 +1285,12 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  advanceToNextTurn((claimPrompt.fromPlayerIndex + 1) % 3 as GameSeatIndex);
+                  if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                    multiplayerService.sendToHost('PLAYER_CLAIM', { claimAction: 'pass' });
+                    setClaimPrompt(null);
+                  } else {
+                    advanceToNextTurn((claimPrompt.fromPlayerIndex + 1) % 3 as GameSeatIndex);
+                  }
                 }}
                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition active:scale-95"
               >
@@ -1039,7 +1307,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
               {myZimoCheck?.canWin && (
                 <button
                   type="button"
-                  onClick={() => handleDeclareWin(mySeatIndex, 'zimo', undefined, myZimoCheck.calcResult)}
+                  onClick={() => {
+                    if (gameMode === 'multiplayer' && !multiplayerService.isHost) {
+                      multiplayerService.sendToHost('PLAYER_CLAIM', { claimAction: 'win' });
+                    } else {
+                      handleDeclareWin(mySeatIndex, 'zimo', undefined, myZimoCheck.calcResult);
+                    }
+                  }}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-white font-black text-sm shadow-xl transition active:scale-95"
                 >
                   🎉 自摸胡牌！
@@ -1070,7 +1344,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
             <div className="p-5 text-center bg-[#072416] border-b border-emerald-800">
               <span className="text-3xl">🏆</span>
               <h3 className="font-extrabold text-xl text-amber-300 mt-1">
-                {players[settlement.winnerIndex].name} {settlement.winType === 'zimo' ? '自摸胡牌！' : '出冲胡牌！'}
+                {players[settlement.winnerIndex]?.name || '赢家'} {settlement.winType === 'zimo' ? '自摸胡牌！' : '出冲胡牌！'}
               </h3>
               <p className="text-xs text-emerald-300/80 mt-0.5">
                 牌型：{settlement.calcResult.handPatternNameZh} · 总计 {settlement.calcResult.totalFan} 番
@@ -1093,7 +1367,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
 
               {/* 筹码收支总结 */}
               <div className="bg-amber-500/10 border border-amber-500/40 p-3 rounded-2xl space-y-1.5">
-                <h4 className="font-bold text-amber-300">本局结算金额：</h4>
+                <h4 className="font-bold text-amber-300">本局结算金额 (房主规则)：</h4>
                 <div className="text-sm font-black text-amber-200 flex justify-between">
                   <span>赢家总收筹码：</span>
                   <span>RM {settlement.calcResult.payout.winnerReceivedTotal.toFixed(2)}</span>
@@ -1132,10 +1406,15 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       <RoomLobbyModal
         isOpen={isLobbyOpen}
         onClose={() => setIsLobbyOpen(false)}
-        onStartGame={(mode, roomPlayers) => {
+        rules={rules}
+        onStartGame={(mode, roomPlayers, hostRules) => {
           setGameMode(mode);
-          startNewGame(roomPlayers);
+          if (hostRules) {
+            setActiveGameRules(hostRules);
+          }
+          startNewGame(roomPlayers, hostRules);
         }}
+        initialRoomCode={initialRoomCode}
       />
     </div>
   );

@@ -1,12 +1,13 @@
-export type TileCategory = 'tong' | 'wind' | 'dragon' | 'fei' | 'flower' | 'animal';
+export type TileCategory = 'tong' | 'wind' | 'dragon' | 'fei' | 'flower' | 'animal' | 'face';
 
 export type WindValue = 'east' | 'south' | 'west' | 'north';
 export type DragonValue = 'zhong' | 'fa' | 'bai';
 export type FlowerValue = 'chun' | 'xia' | 'qiu' | 'dong' | 'mei' | 'lan' | 'zhu' | 'ju';
 export type AnimalValue = 'cat' | 'rat' | 'rooster' | 'centipede';
+export type FaceValue = 'male' | 'female';
 
 export interface MahjongTileData {
-  id: string; // e.g. 'tong_1', 'wind_east', 'fei_1', 'flower_chun', 'animal_cat'
+  id: string; // e.g. 'tong_1', 'wind_east', 'fei_1', 'flower_chun', 'animal_cat', 'face_male_1'
   category: TileCategory;
   value: number | string; // 1-9 for tong, string for others
   nameZh: string;
@@ -32,6 +33,8 @@ export interface WinningConditions {
   isRobbingKong: boolean; // 抢杠
   isLastTileDraw: boolean; // 海底捞月
   isLastTileDiscard: boolean; // 海底捞沙
+  isTianHu?: boolean; // 天胡 (庄家起手胡牌，爆番10番)
+  isDiHu?: boolean; // 地胡 (闲家第一巡胡牌，爆番10番)
   playerSeat: WindValue; // 自身门风 (通常东家、南家、西家)
   roundWind: WindValue; // 圈风 (通常东风圈)
   isShooterDouble: boolean; // 出冲一人全包
@@ -63,6 +66,19 @@ export interface RuleSettings {
   noFeiBonusFan: number; // 无飞/清飞加番 (默认 1番)
   fourFeiWinFan: number; // 4只飞满天飞直接胡牌番数 (默认 10番或满胡)
   noFlowerBaoFan: number; // 无花(清花)爆番番数 (默认 10番或满胡)
+  faceTileFan: number; // 每张人头牌番数 (默认 1 番)
+  allHonorsFan: number; // 全字牌/全大炮 番数 (默认 10 番爆番)
+  bigFourWindsFan: number; // 大四喜 番数 (默认 10 番爆番)
+  littleFourWindsFan: number; // 小四喜 番数 (默认 10 番爆番)
+  fourKongsFan: number; // 十八罗汉(四杠子) 番数 (默认 10 番爆番)
+  fourConcealedPungsFan: number; // 坎坎胡(四暗刻) 番数 (默认 10 番爆番)
+  flowerHuFan: number; // 花胡(八仙过海) 番数 (默认 10 番爆番)
+  tianHuFan: number; // 天胡 番数 (默认 10 番爆番)
+  diHuFan: number; // 地胡 番数 (默认 10 番爆番)
+  pureAllChowsFan: number; // 全筒子平胡 番数 (默认 4 番)
+  yaoJiuFan: number; // 幺九 番数 (默认 1 番)
+  daDongNanXiFan: number; // 大东南西 番数 (默认 5 番)
+  xiaoDongNanXiFan: number; // 小东南西 番数 (默认 3 番)
   // 飞牌结算模式：'cash' (不算番，直接算钱，如RM 0.50/张) 或 'fan' (+1番/张)
   feiCalculationMode: 'cash' | 'fan';
   feiCashAmount: number; // 飞牌单价现金金额 (RM)，支持自由编辑，默认 0.50
@@ -74,10 +90,11 @@ export interface RuleSettings {
   fullFlushFan: number; // 清一色 (全色) 番数，默认 4 番
   allPongsFan: number; // 碰碰胡 (对对胡) 番数，默认 2 番
   pureStraightFan: number; // 一条龙 (1-9筒) 番数，默认 2 番
-  bigThreeDragonsFan: number; // 大三元 番数，默认 5 番
+  bigThreeDragonsFan: number; // 大三元 番数，默认 10 番 (维基爆番)
   smallThreeDragonsFan: number; // 小三元 番数，默认 3 番
   sevenPairsFan: number; // 七对子 番数，默认 5 番
   thirteenOrphansFan: number; // 十三幺 番数，默认 10 番 (满胡)
+  nineGatesFan: number; // 九莲宝灯 (九子连环) 番数，默认 10 番 (满胡)
   menqingFan: number; // 门清 番数，默认 1 番 (0 表示不算门清)
   zimoFan: number; // 自摸 额外番数，默认 1 番
   kongBloomFan: number; // 杠上开花 番数，默认 1 番
@@ -93,6 +110,18 @@ export interface RuleSettings {
   enableBigThreeDragons?: boolean; // 大三元开关
   enableSevenPairs?: boolean; // 七对子开关
   enableThirteenOrphans?: boolean; // 十三幺开关
+  enableNineGates?: boolean; // 九莲宝灯开关
+  enableAllHonors?: boolean; // 全字牌/全大炮开关
+  enableBigFourWinds?: boolean; // 大四喜开关
+  enableLittleFourWinds?: boolean; // 小四喜开关
+  enableFourKongs?: boolean; // 十八罗汉开关
+  enableFourConcealedPungs?: boolean; // 坎坎胡开关
+  enableFlowerHu?: boolean; // 花胡开关
+  enableTianHuDiHu?: boolean; // 天胡/地胡开关
+  enablePureAllChows?: boolean; // 全筒子平胡开关
+  enableYaoJiu?: boolean; // 幺九开关
+  enableDaDongNanXi?: boolean; // 大东南西开关
+  enableXiaoDongNanXi?: boolean; // 小东南西开关
   enableMenqing?: boolean; // 门清开关
   enableZimoBonus?: boolean; // 自摸额外加番开关
   enableKongBloom?: boolean; // 杠上开花开关

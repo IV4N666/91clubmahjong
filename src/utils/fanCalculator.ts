@@ -10,9 +10,17 @@ import { isAnimalBite } from '../constants/tiles';
 import { getClassicTierMultiplier } from '../constants/defaultRules';
 import {
   checkIsWin,
+  checkNineGates,
   checkThirteenOrphans,
   checkSevenPairs,
   checkIsAllPongs,
+  checkAllHonors,
+  checkBigFourWinds,
+  checkLittleFourWinds,
+  checkPureAllChows,
+  checkYaoJiu,
+  checkDaDongNanXi,
+  checkXiaoDongNanXi,
 } from './mahjongEngine';
 
 export function calculateMahjongScore(
@@ -235,10 +243,25 @@ export function calculateMahjongScore(
   });
 
   // ----------------------------------------------------
-  // 4. 花牌与动物牌 (Malaysian Flowers & Animals)
+  // 4. 花牌、动物牌与人头牌 (Flowers, Animals & Face Tiles)
   // ----------------------------------------------------
   const animals = flowerAndAnimals.filter(t => t.category === 'animal');
   const flowers = flowerAndAnimals.filter(t => t.category === 'flower');
+  const faces = flowerAndAnimals.filter(t => t.category === 'face');
+
+  // 人头牌 (每张人头牌计一番 - 维基百科大马三人麻将标准规则)
+  if (faces.length > 0) {
+    const faceFan = (rules.faceTileFan ?? 1) * faces.length;
+    fanItems.push({
+      id: 'faces_count',
+      nameZh: `人头牌 (${faces.length}张)`,
+      nameEn: `Face Tiles (${faces.length})`,
+      fan: faceFan,
+      descriptionZh: `摸得【${faces.map(f => f.nameZh).join('、')}】，每张人头牌计 ${rules.faceTileFan ?? 1} 番（维基百科标准）。`,
+      descriptionEn: `Face tiles captured (+${faceFan} Fan).`,
+      category: 'flower',
+    });
+  }
 
   // 每只动物 +1 番
   if (animals.length > 0) {
@@ -330,7 +353,7 @@ export function calculateMahjongScore(
       nameZh: '一套花 (四季：春夏秋冬)',
       nameEn: 'Full Season Flowers (1-4)',
       fan: rules.flowerSetFan,
-      descriptionZh: `集齐春、夏、秋、冬完整一套花 (+${rules.flowerSetFan} 番)！`,
+      descriptionZh: `集齐春、夏、秋、冬完整一套花 (+${rules.flowerSetFan} 番，维基百科标准4番)！`,
       descriptionEn: `Complete set of 4 seasons (+${rules.flowerSetFan} Fan).`,
       category: 'flower',
     });
@@ -342,8 +365,22 @@ export function calculateMahjongScore(
       nameZh: '一套花 (四君子：梅兰竹菊)',
       nameEn: 'Full Plant Flowers (1-4)',
       fan: rules.flowerSetFan,
-      descriptionZh: `集齐梅、兰、竹、菊完整一套花 (+${rules.flowerSetFan} 番)！`,
+      descriptionZh: `集齐梅、兰、竹、菊完整一套花 (+${rules.flowerSetFan} 番，维基百科标准4番)！`,
       descriptionEn: `Complete set of 4 plants (+${rules.flowerSetFan} Fan).`,
+      category: 'flower',
+    });
+  }
+
+  // 花胡 (八仙过海 / All 8 Flowers - 维基百科爆番 10 番)
+  if ((rules.enableFlowerHu ?? true) && seasons.length === 4 && plants.length === 4 && isWin) {
+    const flowerHuFan = rules.flowerHuFan ?? 10;
+    fanItems.push({
+      id: 'flower_hu',
+      nameZh: '花胡 (八仙过海 / 爆番)',
+      nameEn: 'All 8 Flowers (Flower Hu)',
+      fan: flowerHuFan,
+      descriptionZh: `起手拿齐八张春夏秋冬梅兰竹菊，达成大马三人麻将花胡爆番 (+${flowerHuFan} 番)！`,
+      descriptionEn: `Captured all 8 flowers (Spring, Summer, Autumn, Winter, Plum, Orchid, Bamboo, Chrysanthemum) (+${flowerHuFan} Fan).`,
       category: 'flower',
     });
   }
@@ -358,8 +395,8 @@ export function calculateMahjongScore(
       nameZh: '无花 (爆番)',
       nameEn: 'No Flowers (Limit Hand)',
       fan: noFlowerFan,
-      descriptionZh: `整局未摸任何花牌与动物牌，达成经典无花爆番（维基百科标准：直接满胡 +${noFlowerFan} 番）！`,
-      descriptionEn: `Won without any flowers, seasons, or animals (Wikipedia Limit Hand: +${noFlowerFan} Fan).`,
+      descriptionZh: `整局未摸任何花牌、动物牌与人头牌，达成经典无花爆番（维基百科标准：直接满胡 +${noFlowerFan} 番）！`,
+      descriptionEn: `Won without any flowers, seasons, faces, or animals (Wikipedia Limit Hand: +${noFlowerFan} Fan).`,
       category: 'flower',
     });
   }
@@ -409,8 +446,28 @@ export function calculateMahjongScore(
     });
   }
 
-  // 十三幺 (Thirteen Orphans - 门清特殊牌型)
+  // 九莲宝灯 (Nine Gates / 九子连环 - 门清特殊牌型)
   const nonFeiHandTiles = handTiles.filter(t => t.category !== 'fei');
+  const nineGatesCheck = checkNineGates(nonFeiHandTiles, feiInHandCount);
+  if ((rules.enableNineGates ?? true) && melds.length === 0 && nineGatesCheck.isNineGates) {
+    const nineGatesFan = rules.nineGatesFan ?? 10;
+    const isPure = nineGatesCheck.isPure;
+    fanItems.push({
+      id: 'nine_gates',
+      nameZh: isPure ? '纯正九莲宝灯 (爆番)' : '九莲宝灯 (九子连环)',
+      nameEn: isPure ? 'Pure Nine Gates (Max Fan)' : 'Nine Gates (Chuuren Poutou)',
+      fan: nineGatesFan,
+      descriptionZh: isPure
+        ? `门清纯正无飞 1112345678999 绝世九子连环，大马三人麻将直接满胡爆番 (+${nineGatesFan} 番)！`
+        : `门清纯筒子 1112345678999 达成九莲宝灯 (+${nineGatesFan} 番)！`,
+      descriptionEn: `Nine Gates special limit hand pattern (+${nineGatesFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = isPure ? '纯正九莲宝灯' : '九莲宝灯';
+    handPatternEn = isPure ? 'Pure Nine Gates' : 'Nine Gates';
+  }
+
+  // 十三幺 (Thirteen Orphans - 门清特殊牌型)
   if ((rules.enableThirteenOrphans ?? true) && melds.length === 0 && checkThirteenOrphans(nonFeiHandTiles, feiInHandCount)) {
     const thirteenOrphansFan = rules.thirteenOrphansFan ?? 10;
     fanItems.push({
@@ -444,6 +501,157 @@ export function calculateMahjongScore(
     }
   }
 
+  // 天胡 / 地胡 (维基百科 10 番爆番)
+  if ((rules.enableTianHuDiHu ?? true) && winningConditions.isTianHu && isWin) {
+    const tianHuFan = rules.tianHuFan ?? 10;
+    fanItems.push({
+      id: 'tian_hu',
+      nameZh: '天胡 (爆番)',
+      nameEn: 'Heavenly Hand (Tian Hu)',
+      fan: tianHuFan,
+      descriptionZh: `庄家起手配牌即成胡，神乎其技天胡爆番 (+${tianHuFan} 番)！`,
+      descriptionEn: `Dealer wins on the initial deal (+${tianHuFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '天胡';
+    handPatternEn = 'Heavenly Hand';
+  } else if ((rules.enableTianHuDiHu ?? true) && winningConditions.isDiHu && isWin) {
+    const diHuFan = rules.diHuFan ?? 10;
+    fanItems.push({
+      id: 'di_hu',
+      nameZh: '地胡 (爆番)',
+      nameEn: 'Earthly Hand (Di Hu)',
+      fan: diHuFan,
+      descriptionZh: `闲家在第一巡自摸或起手听牌吃胡，地胡爆番 (+${diHuFan} 番)！`,
+      descriptionEn: `Non-dealer wins on the first drawn tile (+${diHuFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '地胡';
+    handPatternEn = 'Earthly Hand';
+  }
+
+  // 全字牌 / 全大炮 (All Honours - 维基百科 10 番爆番)
+  if ((rules.enableAllHonors ?? true) && isWin && checkAllHonors(handTiles, melds)) {
+    const allHonorsFan = rules.allHonorsFan ?? 10;
+    fanItems.push({
+      id: 'all_honors',
+      nameZh: '全字牌 (全大炮 / 爆番)',
+      nameEn: 'All Honours (Tsuuiisou)',
+      fan: allHonorsFan,
+      descriptionZh: `整副牌全是字牌（东南西北、中发白），大马维基百科经典爆番 (+${allHonorsFan} 番)！`,
+      descriptionEn: `Entire hand composed solely of honour tiles (+${allHonorsFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '全字牌 (全大炮)';
+    handPatternEn = 'All Honours';
+  }
+
+  // 大四喜 / 小四喜 (Big & Little Four Winds - 维基百科 10 番爆番)
+  if ((rules.enableBigFourWinds ?? true) && isWin && checkBigFourWinds(handTiles, melds)) {
+    const bigFourWindsFan = rules.bigFourWindsFan ?? 10;
+    fanItems.push({
+      id: 'big_four_winds',
+      nameZh: '大四喜 (爆番)',
+      nameEn: 'Big Four Winds',
+      fan: bigFourWindsFan,
+      descriptionZh: `东南西北四组风牌刻子全齐，大四喜大满贯爆番 (+${bigFourWindsFan} 番)！`,
+      descriptionEn: `Triplets of all four winds (+${bigFourWindsFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '大四喜';
+    handPatternEn = 'Big Four Winds';
+  } else if ((rules.enableLittleFourWinds ?? true) && isWin && checkLittleFourWinds(handTiles, melds)) {
+    const littleFourWindsFan = rules.littleFourWindsFan ?? 10;
+    fanItems.push({
+      id: 'little_four_winds',
+      nameZh: '小四喜 (爆番)',
+      nameEn: 'Little Four Winds',
+      fan: littleFourWindsFan,
+      descriptionZh: `三组风牌刻子加一组风牌对子，大马维基百科爆番 (+${littleFourWindsFan} 番)！`,
+      descriptionEn: `Three wind triplets and one wind pair (+${littleFourWindsFan} Fan).`,
+      category: 'special',
+    });
+    if (handPatternZh === '普通胡') {
+      handPatternZh = '小四喜';
+      handPatternEn = 'Little Four Winds';
+    }
+  } else if ((rules.enableDaDongNanXi ?? true) && isWin && checkDaDongNanXi(handTiles, melds)) {
+    // 大东南西 (除了北风外的三组风牌刻子)
+    const daDongNanXiFan = rules.daDongNanXiFan ?? 5;
+    fanItems.push({
+      id: 'da_dong_nan_xi',
+      nameZh: '大东南西',
+      nameEn: 'Big Three Winds (East South West)',
+      fan: daDongNanXiFan,
+      descriptionZh: `集结东、南、西三组风牌刻子 (+${daDongNanXiFan} 番，维基百科常见自定义规则)！`,
+      descriptionEn: `Three triplets of East, South, and West winds (+${daDongNanXiFan} Fan).`,
+      category: 'special',
+    });
+  } else if ((rules.enableXiaoDongNanXi ?? true) && isWin && checkXiaoDongNanXi(handTiles, melds)) {
+    // 小东南西 (除了北风外的两组风牌刻子 + 一组雀头)
+    const xiaoDongNanXiFan = rules.xiaoDongNanXiFan ?? 3;
+    fanItems.push({
+      id: 'xiao_dong_nan_xi',
+      nameZh: '小东南西',
+      nameEn: 'Little Three Winds (East South West)',
+      fan: xiaoDongNanXiFan,
+      descriptionZh: `集结东、南、西中两组风牌刻子加一组对子雀头 (+${xiaoDongNanXiFan} 番)！`,
+      descriptionEn: `Two triplets and one pair of East, South, and West winds (+${xiaoDongNanXiFan} Fan).`,
+      category: 'special',
+    });
+  }
+
+  // 十八罗汉 (四个杠胡牌 - 维基百科 10 番爆番)
+  const totalKongsCount = melds.filter(m => m.type === 'kong_exposed' || m.type === 'kong_concealed').length;
+  if ((rules.enableFourKongs ?? true) && isWin && totalKongsCount === 4) {
+    const fourKongsFan = rules.fourKongsFan ?? 10;
+    fanItems.push({
+      id: 'four_kongs',
+      nameZh: '十八罗汉 (四杠胡牌 / 爆番)',
+      nameEn: 'Four Kongs (Eighteen Luohan)',
+      fan: fourKongsFan,
+      descriptionZh: `一人开出 4 组杠牌胡牌，大马维基百科满胡爆番 (+${fourKongsFan} 番)！`,
+      descriptionEn: `Winning hand composed of 4 Kongs (+${fourKongsFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '十八罗汉';
+    handPatternEn = 'Four Kongs';
+  }
+
+  // 坎坎胡 (四暗刻 - 维基百科 10 番爆番，门清靠自摸摸齐4组暗刻)
+  if ((rules.enableFourConcealedPungs ?? true) && isWin && melds.length === 0 && winningConditions.isZimo && checkIsAllPongs(allHandTiles, melds)) {
+    const fourConcealedPungsFan = rules.fourConcealedPungsFan ?? 10;
+    fanItems.push({
+      id: 'four_concealed_pungs',
+      nameZh: '坎坎胡 (四暗刻 / 爆番)',
+      nameEn: 'Four Concealed Triplets',
+      fan: fourConcealedPungsFan,
+      descriptionZh: `门清全靠自摸摸齐 4 组暗刻，大马维基百科经典爆番 (+${fourConcealedPungsFan} 番)！`,
+      descriptionEn: `Four concealed triplets won by self-draw (+${fourConcealedPungsFan} Fan).`,
+      category: 'special',
+    });
+    handPatternZh = '坎坎胡 (四暗刻)';
+    handPatternEn = 'Four Concealed Triplets';
+  }
+
+  // 全筒子平胡 (四组顺子纯筒子 - 维基百科 4 番：全筒子3番 + 平和1番)
+  if ((rules.enablePureAllChows ?? true) && isWin && checkPureAllChows(handTiles, melds)) {
+    const pureAllChowsFan = rules.pureAllChowsFan ?? 4;
+    fanItems.push({
+      id: 'pure_all_chows',
+      nameZh: '全筒子平胡 (清平胡)',
+      nameEn: 'Pure Dots All Chows',
+      fan: pureAllChowsFan,
+      descriptionZh: `四组纯筒子顺子加一对筒子眼：全筒子(3番) + 平和(1番) = 4番（维基百科标准牌型）！`,
+      descriptionEn: `All chows in pure dots suit (+${pureAllChowsFan} Fan).`,
+      category: 'special',
+    });
+    if (handPatternZh === '普通胡') {
+      handPatternZh = '全筒子平胡';
+      handPatternEn = 'Pure Dots All Chows';
+    }
+  }
+
   // 碰碰胡 (All Pongs - 全部由刻子/杠子组成，无顺子)
   const hasChow = melds.some(m => m.type === 'chow');
   const isAllPongs = checkIsAllPongs(allHandTiles, melds) || (!hasChow && melds.length >= 2);
@@ -464,7 +672,21 @@ export function calculateMahjongScore(
     }
   }
 
-  // 大三元 / 小三元
+  // 幺九 (混幺九 - 维基百科 +1 番：对对胡全由1筒、9筒与字牌组成)
+  if ((rules.enableYaoJiu ?? true) && isWin && checkYaoJiu(handTiles, melds)) {
+    const yaoJiuFan = rules.yaoJiuFan ?? 1;
+    fanItems.push({
+      id: 'yao_jiu',
+      nameZh: '幺九 (混幺九)',
+      nameEn: 'All Terminals & Honours',
+      fan: yaoJiuFan,
+      descriptionZh: `对对胡牌型全由一筒、九筒与字牌组成，额外加 ${yaoJiuFan} 番（维基百科标准）。`,
+      descriptionEn: `All triplets made of 1, 9, or honours (+${yaoJiuFan} Fan).`,
+      category: 'suit',
+    });
+  }
+
+  // 大三元 / 小三元 (维基百科：大三元为 10 番爆番牌型)
   const zhongCount = allGameTiles.filter(t => t.id === 'dragon_zhong').length;
   const faCount = allGameTiles.filter(t => t.id === 'dragon_fa').length;
   const baiCount = allGameTiles.filter(t => t.id === 'dragon_bai').length;
@@ -472,16 +694,16 @@ export function calculateMahjongScore(
   const dragonTriplets = [zhongCount >= 3, faCount >= 3, baiCount >= 3].filter(Boolean).length;
   const dragonPairs = [zhongCount >= 2, faCount >= 2, baiCount >= 2].filter(Boolean).length;
 
-  const bigThreeDragonsFan = rules.bigThreeDragonsFan ?? 5;
+  const bigThreeDragonsFan = rules.bigThreeDragonsFan ?? 10;
   const smallThreeDragonsFan = rules.smallThreeDragonsFan ?? 3;
 
   if ((rules.enableBigThreeDragons ?? true) && dragonTriplets === 3) {
     fanItems.push({
       id: 'big_three_dragons',
-      nameZh: '大三元',
+      nameZh: '大三元 (爆番)',
       nameEn: 'Big Three Dragons',
       fan: bigThreeDragonsFan,
-      descriptionZh: `中、发、白三组刻子全齐，大显神通！(+${bigThreeDragonsFan} 番)`,
+      descriptionZh: `红中、发财、白板三组刻子全齐，大马维基百科满胡爆番 (+${bigThreeDragonsFan} 番)！`,
       descriptionEn: `Triplets of all three dragons (+${bigThreeDragonsFan} Fan).`,
       category: 'special',
     });
@@ -509,32 +731,72 @@ export function calculateMahjongScore(
     }
   }
 
-  // 门风与圈风刻子
-  const seatWindId = `wind_${winningConditions.playerSeat}`;
-  const roundWindId = `wind_${winningConditions.roundWind}`;
-  const seatWindCount = allGameTiles.filter(t => t.id === seatWindId).length;
-  const roundWindCount = allGameTiles.filter(t => t.id === roundWindId).length;
+  // 门风与圈风刻子 (维基百科大马三人麻将权威规则：
+  // 1. 圈风永远为东，任何玩家持东风刻子均计 1 番；庄家(东家)拿到东风计两番(圈风+门风)。
+  // 2. 闲家吻合门风(南位南风、西位西风)计 1 番。
+  // 3. 三人麻将没有第四位玩家，所以北风任何玩家都可以计一番！)
+  const eastCount = allGameTiles.filter(t => t.id === 'wind_east').length;
+  const southCount = allGameTiles.filter(t => t.id === 'wind_south').length;
+  const westCount = allGameTiles.filter(t => t.id === 'wind_west').length;
+  const northCount = allGameTiles.filter(t => t.id === 'wind_north').length;
 
-  if (seatWindCount >= 3) {
+  if (eastCount >= 3) {
+    if (winningConditions.playerSeat === 'east') {
+      fanItems.push({
+        id: 'east_wind_dealer',
+        nameZh: '东风刻子 (圈风+门风 2番)',
+        nameEn: 'East Wind Triplet (Prevailing + Seat Wind)',
+        fan: 2,
+        descriptionZh: '庄家东位持东风刻子，双重吻合圈风与门风，计 2 番（维基百科标准）。',
+        descriptionEn: 'East wind triplet for dealer (+2 Fan).',
+        category: 'suit',
+      });
+    } else {
+      fanItems.push({
+        id: 'round_wind_east',
+        nameZh: '圈风刻子 (东风)',
+        nameEn: 'Prevailing East Wind Triplet',
+        fan: 1,
+        descriptionZh: '持圈风东风刻子 (+1 番)。',
+        descriptionEn: 'Matching prevailing East wind triplet (+1 Fan).',
+        category: 'suit',
+      });
+    }
+  }
+
+  if (winningConditions.playerSeat === 'south' && southCount >= 3) {
     fanItems.push({
-      id: 'seat_wind',
-      nameZh: '正风 / 门风刻子',
-      nameEn: 'Seat Wind Triplet',
+      id: 'seat_wind_south',
+      nameZh: '正风 / 门风刻子 (南风)',
+      nameEn: 'Seat South Wind Triplet',
       fan: 1,
-      descriptionZh: '自身座位风刻子 (+1 番)。',
-      descriptionEn: 'Matching seat wind triplet (+1 Fan).',
+      descriptionZh: '自身南位吻合门风南风刻子 (+1 番)。',
+      descriptionEn: 'Matching seat South wind triplet (+1 Fan).',
       category: 'suit',
     });
   }
 
-  if (roundWindCount >= 3 && seatWindId !== roundWindId) {
+  if (winningConditions.playerSeat === 'west' && westCount >= 3) {
     fanItems.push({
-      id: 'round_wind',
-      nameZh: '圈风刻子',
-      nameEn: 'Round Wind Triplet',
+      id: 'seat_wind_west',
+      nameZh: '正风 / 门风刻子 (西风)',
+      nameEn: 'Seat West Wind Triplet',
       fan: 1,
-      descriptionZh: '当前圈风刻子 (+1 番)。',
-      descriptionEn: 'Matching round wind triplet (+1 Fan).',
+      descriptionZh: '自身西位吻合门风西风刻子 (+1 番)。',
+      descriptionEn: 'Matching seat West wind triplet (+1 Fan).',
+      category: 'suit',
+    });
+  }
+
+  // 北风刻子 (三人麻将无第四位玩家，任何玩家获得北风刻子均计一番)
+  if (northCount >= 3) {
+    fanItems.push({
+      id: 'wind_north_any',
+      nameZh: '北风刻子 (任何玩家计一番)',
+      nameEn: 'North Wind Triplet',
+      fan: 1,
+      descriptionZh: '三人麻将无北位玩家，任何玩家获得北风刻子均计一番（维基百科标准）。',
+      descriptionEn: 'North wind triplet for any player (+1 Fan).',
       category: 'suit',
     });
   }
@@ -585,7 +847,20 @@ export function calculateMahjongScore(
     const baoFanMultiplier = rules.baoFanMultiplier ?? 20;
 
     const hasLimitHand = fanItems.some(
-      item => item.id === 'no_flowers' || item.id === 'four_fei' || item.id === 'thirteen_orphans'
+      item =>
+        item.id === 'no_flowers' ||
+        item.id === 'four_fei' ||
+        item.id === 'thirteen_orphans' ||
+        item.id === 'nine_gates' ||
+        item.id === 'all_honors' ||
+        item.id === 'big_four_winds' ||
+        item.id === 'little_four_winds' ||
+        item.id === 'big_three_dragons' ||
+        item.id === 'four_kongs' ||
+        item.id === 'four_concealed_pungs' ||
+        item.id === 'flower_hu' ||
+        item.id === 'tian_hu' ||
+        item.id === 'di_hu'
     );
 
     if (totalFan > baoFanThreshold || (hasLimitHand && totalFan >= baoFanThreshold)) {

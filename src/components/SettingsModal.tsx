@@ -938,6 +938,483 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
 
+                {/* 九莲宝灯 (九子连环) - Wikipedia Three-Player Mahjong Standard */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableNineGates ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableNineGates ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableNineGates: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableNineGates ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '九莲宝灯 (九子连环)' : 'Nine Gates'}
+                      </span>
+                    </label>
+                    {(tempRules.enableNineGates ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.nineGatesFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableNineGates ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableNineGates ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, nineGatesFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.nineGatesFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableNineGates ?? true)
+                      ? (lang === 'zh' ? '门清纯筒子 1112345678999，大马维基三人麻将经典爆番（常用 10/16番）。' : 'Concealed 1112345678999 pure dots (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不认可九莲宝灯特殊胡牌）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 全字牌 (全大炮) - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableAllHonors ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableAllHonors ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableAllHonors: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableAllHonors ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '全字牌 (全大炮)' : 'All Honours'}
+                      </span>
+                    </label>
+                    {(tempRules.enableAllHonors ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.allHonorsFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableAllHonors ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableAllHonors ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, allHonorsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.allHonorsFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableAllHonors ?? true)
+                      ? (lang === 'zh' ? '整副牌全是东南西北中发白（维基爆番 10 番）。' : 'Entire hand is honour tiles (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不计全字牌特殊爆番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 大四喜 - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableBigFourWinds ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableBigFourWinds ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableBigFourWinds: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableBigFourWinds ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '大四喜 (东南西北)' : 'Big Four Winds'}
+                      </span>
+                    </label>
+                    {(tempRules.enableBigFourWinds ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.bigFourWindsFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableBigFourWinds ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableBigFourWinds ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, bigFourWindsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.bigFourWindsFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableBigFourWinds ?? true)
+                      ? (lang === 'zh' ? '集齐东南西北四组风牌刻子（维基爆番 10 番）。' : 'Triplets of all 4 winds (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不计大四喜）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 小四喜 - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableLittleFourWinds ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableLittleFourWinds ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableLittleFourWinds: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableLittleFourWinds ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '小四喜' : 'Little Four Winds'}
+                      </span>
+                    </label>
+                    {(tempRules.enableLittleFourWinds ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.littleFourWindsFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableLittleFourWinds ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableLittleFourWinds ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, littleFourWindsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.littleFourWindsFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableLittleFourWinds ?? true)
+                      ? (lang === 'zh' ? '三组风牌刻子 + 一组风牌眼（维基爆番 10 番）。' : '3 wind triplets + 1 wind pair (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不计小四喜）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 十八罗汉 (四杠胡牌) - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFourKongs ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFourKongs ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFourKongs: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFourKongs ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '十八罗汉 (四杠胡牌)' : 'Four Kongs'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFourKongs ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.fourKongsFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFourKongs ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableFourKongs ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, fourKongsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.fourKongsFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableFourKongs ?? true)
+                      ? (lang === 'zh' ? '一人自开四组杠牌胡牌（维基爆番 10 番）。' : 'Winning with 4 kongs (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不计十八罗汉爆番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 坎坎胡 (四暗刻) - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFourConcealedPungs ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFourConcealedPungs ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFourConcealedPungs: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFourConcealedPungs ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '坎坎胡 (四暗刻)' : '4 Concealed Pungs'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFourConcealedPungs ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.fourConcealedPungsFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFourConcealedPungs ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableFourConcealedPungs ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, fourConcealedPungsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.fourConcealedPungsFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableFourConcealedPungs ?? true)
+                      ? (lang === 'zh' ? '门清全靠自摸摸齐 4 组暗刻（维基爆番 10 番）。' : '4 concealed pungs won by self-draw (Limit).')
+                      : (lang === 'zh' ? '（已取消勾选：不计坎坎胡爆番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 全筒子平胡 (清平胡) - Wikipedia 4 Fan */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enablePureAllChows ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enablePureAllChows ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enablePureAllChows: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enablePureAllChows ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '全筒子平胡 (清平胡)' : 'Pure All Chows'}
+                      </span>
+                    </label>
+                    {(tempRules.enablePureAllChows ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.pureAllChowsFan ?? 4} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enablePureAllChows ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[2, 3, 4, 5].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enablePureAllChows ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, pureAllChowsFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.pureAllChowsFan ?? 4) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 4 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enablePureAllChows ?? true)
+                      ? (lang === 'zh' ? '四组纯顺子加筒子眼（全筒子3番+平和1番=4番）。' : '4 chows + pair in pure dots (4 Fan).')
+                      : (lang === 'zh' ? '（已取消勾选：不计全筒子平胡）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 幺九 (混幺九) - Wikipedia 1 Fan */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableYaoJiu ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableYaoJiu ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableYaoJiu: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableYaoJiu ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '幺九 (混幺九)' : 'Terminals & Honours'}
+                      </span>
+                    </label>
+                    {(tempRules.enableYaoJiu ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        +{tempRules.yaoJiuFan ?? 1} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableYaoJiu ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[1, 2, 3].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableYaoJiu ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, yaoJiuFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.yaoJiuFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        +{fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableYaoJiu ?? true)
+                      ? (lang === 'zh' ? '对对胡牌型只有1筒、9筒与字牌（维基标准+1番）。' : 'Triplets of 1, 9, and honours (+1F).')
+                      : (lang === 'zh' ? '（已取消勾选：不计幺九番数）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 大东南西 - Wikipedia Custom */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableDaDongNanXi ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableDaDongNanXi ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableDaDongNanXi: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableDaDongNanXi ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '大东南西' : 'Big 3 Winds (E,S,W)'}
+                      </span>
+                    </label>
+                    {(tempRules.enableDaDongNanXi ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.daDongNanXiFan ?? 5} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableDaDongNanXi ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[3, 4, 5, 8].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableDaDongNanXi ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, daDongNanXiFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.daDongNanXiFan ?? 5) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableDaDongNanXi ?? true)
+                      ? (lang === 'zh' ? '集结东、南、西三组风牌刻子（常用 5 番）。' : '3 wind triplets (E, S, W).')
+                      : (lang === 'zh' ? '（已取消勾选：不计大东南西）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
                 {/* 门清 (未吃碰) */}
                 <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
                   (tempRules.enableMenqing ?? true)
@@ -1210,6 +1687,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     {(tempRules.enableLastTile ?? true)
                       ? (lang === 'zh' ? '最后一张摸牌或别家最后一张出冲。' : 'Win on final wall tile.')
                       : (lang === 'zh' ? '（已取消勾选：海底不额外加番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 天胡 / 地胡 - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableTianHuDiHu ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableTianHuDiHu ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableTianHuDiHu: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableTianHuDiHu ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '天胡 / 地胡' : 'Heaven / Earth Hand'}
+                      </span>
+                    </label>
+                    {(tempRules.enableTianHuDiHu ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.tianHuFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableTianHuDiHu ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableTianHuDiHu ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, tianHuFan: fan, diHuFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.tianHuFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableTianHuDiHu ?? true)
+                      ? (lang === 'zh' ? '庄家起手胡牌(天胡)或闲家首巡胡牌(地胡)，维基直接满胡爆番(10番)。' : 'Dealer instant win or 1st round win (Limit 10F).')
+                      : (lang === 'zh' ? '（已取消勾选：天胡地胡不计爆番）' : '(Unticked: Disabled)')
                     }
                   </span>
                 </div>
@@ -1487,6 +2017,91 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       ? (lang === 'zh' ? '抓到4张飞牌满天飞大满贯包赢。' : 'Instant win with all 4 Fei.')
                       : (lang === 'zh' ? '（已取消勾选：4张飞不算直接满胡）' : '(Unticked: Disabled)')
                     }
+                  </span>
+                </div>
+
+                {/* 花胡 (八仙过海) - Wikipedia Limit Hand */}
+                <div className={`border rounded-xl p-2.5 space-y-1.5 transition ${
+                  (tempRules.enableFlowerHu ?? true)
+                    ? 'bg-[#092215] border-emerald-800/80'
+                    : 'bg-[#07180e] border-emerald-950 opacity-60'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={tempRules.enableFlowerHu ?? true}
+                        onChange={(e) => setTempRules({ ...tempRules, enableFlowerHu: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 bg-emerald-900 border-emerald-700"
+                      />
+                      <span className={`font-bold text-xs ${(tempRules.enableFlowerHu ?? true) ? 'text-emerald-200' : 'text-slate-400 line-through'}`}>
+                        {lang === 'zh' ? '花胡 (八仙过海)' : '8 Flowers Instant Win'}
+                      </span>
+                    </label>
+                    {(tempRules.enableFlowerHu ?? true) ? (
+                      <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                        {tempRules.flowerHuFan ?? 10} 番
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        {lang === 'zh' ? '不玩' : 'Off'}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1 ${(tempRules.enableFlowerHu ?? true) ? '' : 'pointer-events-none opacity-40'}`}>
+                    {[5, 8, 10, 16].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        disabled={!(tempRules.enableFlowerHu ?? true)}
+                        onClick={() => setTempRules({ ...tempRules, flowerHuFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.flowerHuFan ?? 10) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan}{fan === 10 && '⭐'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {(tempRules.enableFlowerHu ?? true)
+                      ? (lang === 'zh' ? '一人抓齐全部8张花牌（四季+四君子），直接胡牌且爆番（常用 10 番）。' : 'Instant win with all 8 flowers (Limit 10F).')
+                      : (lang === 'zh' ? '（已取消勾选：抓齐8张花不计直接爆番）' : '(Unticked: Disabled)')
+                    }
+                  </span>
+                </div>
+
+                {/* 人头牌 (男人头 / 女人头) - Wikipedia Standard */}
+                <div className="border rounded-xl p-2.5 space-y-1.5 transition bg-[#092215] border-emerald-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-emerald-200 flex items-center gap-1">
+                      <span>👨👩</span>
+                      {lang === 'zh' ? '人头牌 (男/女头)' : 'Face Tiles'}
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
+                      +{tempRules.faceTileFan ?? 1} 番/张
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2].map((fan) => (
+                      <button
+                        key={fan}
+                        type="button"
+                        onClick={() => setTempRules({ ...tempRules, faceTileFan: fan })}
+                        className={`flex-1 py-1 rounded-lg font-bold text-xs transition ${
+                          (tempRules.faceTileFan ?? 1) === fan
+                            ? 'bg-amber-500 text-slate-950 shadow'
+                            : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
+                        }`}
+                      >
+                        {fan === 0 ? (lang === 'zh' ? '0番' : '0') : `+${fan}番`}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 block">
+                    {lang === 'zh' ? '大马三人麻将84张配置（2男头+2女头），摸到即补牌并计番（维基每张计1番）。' : '84-tile Malaysian standard: +1 Fan per face tile.'}
                   </span>
                 </div>
               </div>

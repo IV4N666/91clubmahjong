@@ -181,10 +181,10 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-emerald-300 flex items-center gap-1">
-              🌺 {lang === 'zh' ? '花牌与动物区' : 'Bonus Flowers & Animals'}
+              🌺 {lang === 'zh' ? '花牌、动物与人头区' : 'Flowers, Animals & Faces'}
             </span>
             <span className="text-[11px] text-emerald-400 font-bold">
-              ({flowers.length} {lang === 'zh' ? '只' : 'tiles'})
+              ({flowers.length} {lang === 'zh' ? '张' : 'tiles'})
             </span>
           </div>
 
@@ -206,7 +206,7 @@ export const HandDisplay: React.FC<HandDisplayProps> = ({
         <div className="min-h-[58px] bg-[#0c2e1c]/80 border border-emerald-800/80 rounded-xl p-2 flex flex-wrap items-center gap-1.5">
           {flowers.length === 0 ? (
             <span className="text-emerald-500/60 text-xs px-2">
-              {lang === 'zh' ? '暂未摸到花牌或动物（可在下方花牌分类中点击添加）' : 'No flowers or animals yet.'}
+              {lang === 'zh' ? '暂未摸到花牌、动物或人头牌（可在下方花牌分类中点击添加）' : 'No bonus tiles yet.'}
             </span>
           ) : (
             flowers.map((f, idx) => (

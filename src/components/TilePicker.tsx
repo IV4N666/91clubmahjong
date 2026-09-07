@@ -12,6 +12,7 @@ import {
   FEI_TILES,
   FLOWER_TILES,
   ANIMAL_TILES,
+  FACE_TILES,
   getTileById,
 } from '../constants/tiles';
 import { MahjongTile } from './MahjongTile';
@@ -69,8 +70,8 @@ export const TilePicker: React.FC<TilePickerProps> = ({
 
   const handleTileClick = (tile: MahjongTileData) => {
     if (targetMode === 'pool') {
-      if (tile.category === 'flower' || tile.category === 'animal') {
-        alert(lang === 'zh' ? '花牌与动物牌摸到即补花展示，不打入公共弃牌池！' : 'Flowers and animals are kept, not discarded.');
+      if (tile.category === 'flower' || tile.category === 'animal' || tile.category === 'face') {
+        alert(lang === 'zh' ? '花牌、动物牌与人头牌摸到即补花展示，不打入公共弃牌池！' : 'Bonus tiles are kept, not discarded.');
         return;
       }
       const stats = getTileStats(tile.id);
@@ -85,7 +86,7 @@ export const TilePicker: React.FC<TilePickerProps> = ({
       return;
     }
 
-    if (tile.category === 'flower' || tile.category === 'animal') {
+    if (tile.category === 'flower' || tile.category === 'animal' || tile.category === 'face') {
       onAddFlower(tile);
     } else {
       onAddTile(tile);
@@ -383,6 +384,31 @@ export const TilePicker: React.FC<TilePickerProps> = ({
                       disabled={used >= 1}
                       onClick={() => handleTileClick(t)}
                     />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 人头牌 (男人头、女人头) */}
+            <div>
+              <div className="text-xs font-bold text-sky-300 mb-1 flex items-center gap-1">
+                <span>🎭 {lang === 'zh' ? '人头牌（大马三人麻将 84 张标准牌）：' : 'Face Tiles (Malaysian 84-tile set):'}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {FACE_TILES.map((t) => {
+                  const used = getTileStats(t.id).inHand;
+                  return (
+                    <div key={t.id} className="flex flex-col items-center">
+                      <MahjongTile
+                        tile={t}
+                        size="md"
+                        disabled={used >= 1}
+                        onClick={() => handleTileClick(t)}
+                      />
+                      <span className="text-[10px] text-sky-300 mt-0.5">
+                        {t.nameZh} (+1番)
+                      </span>
+                    </div>
                   );
                 })}
               </div>

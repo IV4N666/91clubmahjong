@@ -183,6 +183,25 @@ export const MahjongTile: React.FC<MahjongTileProps> = ({
           </div>
         );
       }
+      case 'face': {
+        const emojis: Record<string, string> = {
+          male: '👨',
+          female: '👩',
+        };
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full select-none">
+            <span className="text-lg leading-none filter drop-shadow-sm">
+              {emojis[String(tile.value)] || '🎭'}
+            </span>
+            <span
+              className="font-mahjong font-bold text-[0.7em] mt-0.5"
+              style={{ color: tile.color }}
+            >
+              {tile.nameZh}
+            </span>
+          </div>
+        );
+      }
     }
   };
 

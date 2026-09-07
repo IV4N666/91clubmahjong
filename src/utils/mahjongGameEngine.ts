@@ -7,57 +7,64 @@ import {
   FEI_TILES,
   FLOWER_TILES,
   ANIMAL_TILES,
+  FACE_TILES,
   getTileById,
 } from '../constants/tiles';
 import { checkIsWin } from './mahjongEngine';
 import { calculateMahjongScore } from './fanCalculator';
 
 /**
- * 生成大马三人麻将标准 84 张牌库
+ * 生成大马三人麻将标准 84 张牌库 (维基百科标准)
  * - 1-9 筒：各 4 张 = 36 张
  * - 东/南/西/北：各 4 张 = 16 张
  * - 中/发/白：各 4 张 = 12 张
  * - 飞牌：4 张
  * - 花牌：春/夏/秋/冬/梅/兰/竹/菊 = 8 张
  * - 动物：猫/鼠/鸡/蜈蚣 = 4 张
+ * - 人头：男人头(2张)/女人头(2张) = 4 张
  * 总计：84 张
  */
 export function generateMalaysia3PDeck(): GameTile[] {
   const deck: GameTile[] = [];
 
-  // 1. 筒子牌 4 份
+  // 1. 筒子牌 4 份 (36张)
   TONG_TILES.forEach(tile => {
     for (let i = 0; i < 4; i++) {
       deck.push({ ...tile, uid: `${tile.id}_${i}` });
     }
   });
 
-  // 2. 风牌 4 份
+  // 2. 风牌 4 份 (16张)
   WIND_TILES.forEach(tile => {
     for (let i = 0; i < 4; i++) {
       deck.push({ ...tile, uid: `${tile.id}_${i}` });
     }
   });
 
-  // 3. 三元牌 4 份
+  // 3. 三元牌 4 份 (12张)
   DRAGON_TILES.forEach(tile => {
     for (let i = 0; i < 4; i++) {
       deck.push({ ...tile, uid: `${tile.id}_${i}` });
     }
   });
 
-  // 4. 飞牌 4 份 (飞1 ~ 飞4)
+  // 4. 飞牌 4 份 (4张: 飞1 ~ 飞4)
   FEI_TILES.forEach((tile, i) => {
     deck.push({ ...tile, uid: `${tile.id}_${i}` });
   });
 
-  // 5. 八张花牌 (春夏秋冬, 梅兰竹菊)
+  // 5. 八张花牌 (8张: 春夏秋冬, 梅兰竹菊)
   FLOWER_TILES.forEach((tile, i) => {
     deck.push({ ...tile, uid: `${tile.id}_${i}` });
   });
 
-  // 6. 四只动物 (猫, 鼠, 鸡, 蜈蚣)
+  // 6. 四只动物 (4张: 猫, 鼠, 鸡, 蜈蚣)
   ANIMAL_TILES.forEach((tile, i) => {
+    deck.push({ ...tile, uid: `${tile.id}_${i}` });
+  });
+
+  // 7. 四张人头牌 (4张: 男人头2张, 女人头2张)
+  FACE_TILES.forEach((tile, i) => {
     deck.push({ ...tile, uid: `${tile.id}_${i}` });
   });
 
@@ -88,6 +95,7 @@ export function sortHandTiles(tiles: GameTile[]): GameTile[] {
     fei: 4,
     flower: 5,
     animal: 6,
+    face: 7,
   };
 
   const windOrder: Record<string, number> = {
@@ -122,7 +130,7 @@ export function sortHandTiles(tiles: GameTile[]): GameTile[] {
 }
 
 /**
- * 补花处理：将手牌中的花牌和动物移入花牌区，并从牌墙末尾依次摸牌补足
+ * 补花处理：将手牌中的花牌、动物与人头牌移入花牌区，并从牌墙末尾依次摸牌补足
  */
 export function replaceFlowersInHands(
   hands: GameTile[][],
@@ -147,7 +155,7 @@ export function replaceFlowersInHands(
       const flowerTiles: GameTile[] = [];
 
       for (const tile of newHands[p]) {
-        if (tile.category === 'flower' || tile.category === 'animal') {
+        if (tile.category === 'flower' || tile.category === 'animal' || tile.category === 'face') {
           flowerTiles.push(tile);
         } else {
           regularTiles.push(tile);
@@ -236,7 +244,7 @@ export function checkCanPlayerWin(
  * 检查是否可以对某张弃牌进行「碰」
  */
 export function checkCanPlayerPong(hand: GameTile[], discardTile: GameTile): boolean {
-  if (discardTile.category === 'flower' || discardTile.category === 'animal' || discardTile.category === 'fei') {
+  if (discardTile.category === 'flower' || discardTile.category === 'animal' || discardTile.category === 'face' || discardTile.category === 'fei') {
     return false;
   }
   const matchingCount = hand.filter(t => t.id === discardTile.id).length;
@@ -256,7 +264,7 @@ export function checkCanPlayerKong(
 ): { canKong: boolean; type?: 'ming' | 'an' | 'bu'; targetTileId?: string } {
   // 1. 检查明杠 (他人出牌)
   if (discardTile) {
-    if (discardTile.category === 'flower' || discardTile.category === 'animal' || discardTile.category === 'fei') {
+    if (discardTile.category === 'flower' || discardTile.category === 'animal' || discardTile.category === 'face' || discardTile.category === 'fei') {
       return { canKong: false };
     }
     const matchingCount = hand.filter(t => t.id === discardTile.id).length;
@@ -269,7 +277,7 @@ export function checkCanPlayerKong(
   // 2. 检查暗杠 (自摸轮次，手牌中有 4 张相同普通牌)
   const idCounts: Record<string, number> = {};
   for (const t of hand) {
-    if (t.category !== 'flower' && t.category !== 'animal' && t.category !== 'fei') {
+    if (t.category !== 'flower' && t.category !== 'animal' && t.category !== 'face' && t.category !== 'fei') {
       idCounts[t.id] = (idCounts[t.id] || 0) + 1;
       if (idCounts[t.id] >= 4) {
         return { canKong: true, type: 'an', targetTileId: t.id };

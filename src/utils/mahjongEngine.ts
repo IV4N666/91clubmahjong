@@ -155,6 +155,7 @@ export function checkIsWin(
     enableFourFeiWin?: boolean;
     enableThirteenOrphans?: boolean;
     enableSevenPairs?: boolean;
+    enableNineGates?: boolean;
   }
 ): boolean {
   // 过滤出普通手牌与飞牌 (花牌和动物不计入14张手牌)
@@ -183,12 +184,17 @@ export function checkIsWin(
     return false;
   }
 
-  // 1. 检查特殊牌型：拉飞十三幺 (1筒、9筒、东南西北、中发白 + 飞 + 1对子)
+  // 1. 检查特殊牌型：九莲宝灯 (Nine Gates - 1112345678999 纯筒子)
+  if (rules?.enableNineGates !== false && melds.length === 0 && checkNineGates(regularTiles, feiCount).isNineGates) {
+    return true;
+  }
+
+  // 2. 检查特殊牌型：拉飞十三幺 (1筒、9筒、东南西北、中发白 + 飞 + 1对子)
   if (rules?.enableThirteenOrphans !== false && melds.length === 0 && checkThirteenOrphans(regularTiles, feiCount)) {
     return true;
   }
 
-  // 2. 检查特殊牌型：七对子 (7 pairs)
+  // 3. 检查特殊牌型：七对子 (7 pairs)
   if (rules?.enableSevenPairs !== false && melds.length === 0 && checkSevenPairs(regularTiles, feiCount)) {
     return true;
   }
@@ -239,6 +245,64 @@ export function checkIsWin(
   }
 
   return false;
+}
+
+/**
+ * 检查九莲宝灯 / 九子连环 (Nine Gates)
+ * 条件：
+ * 1. 门清状态 (melds.length === 0) 且手牌总数加飞牌等于 14 张。
+ * 2. 牌型必须全部为纯筒子 (1-9 筒)，不可有风牌、三元牌或花牌。
+ * 3. 基础结构为：1筒3张、9筒3张、2至8筒各1张 (计13张)，再加上1至9筒中任意1张凑成14张。
+ * 4. 可纯正无飞，也可使用飞牌百搭替补。
+ */
+export function checkNineGates(
+  regularTiles: MahjongTileData[],
+  feiCount: number
+): { isNineGates: boolean; isPure: boolean } {
+  if (regularTiles.length + feiCount !== 14) {
+    return { isNineGates: false, isPure: false };
+  }
+
+  // 必须全部是筒子牌 (不能有任何字牌风牌)
+  for (const t of regularTiles) {
+    if (t.category !== 'tong') {
+      return { isNineGates: false, isPure: false };
+    }
+  }
+
+  const counts = new Map<number, number>();
+  for (let i = 1; i <= 9; i++) {
+    counts.set(i, 0);
+  }
+  for (const t of regularTiles) {
+    if (typeof t.value === 'number') {
+      counts.set(t.value, (counts.get(t.value) || 0) + 1);
+    }
+  }
+
+  // 遍历 1-9，看哪一张作为额外的一张 (使得 1-9 中某个为 4 张或 2 张)
+  for (let extra = 1; extra <= 9; extra++) {
+    let missing = 0;
+    for (let v = 1; v <= 9; v++) {
+      let req = (v === 1 || v === 9) ? 3 : 1;
+      if (v === extra) {
+        req += 1;
+      }
+      const actual = counts.get(v) || 0;
+      if (actual < req) {
+        missing += (req - actual);
+      }
+    }
+
+    if (missing <= feiCount) {
+      return {
+        isNineGates: true,
+        isPure: feiCount === 0,
+      };
+    }
+  }
+
+  return { isNineGates: false, isPure: false };
 }
 
 /**
@@ -383,6 +447,233 @@ function canFormOnlyTriplets(counts: Map<number, number>, feiCount: number, need
   meldsMade += surplusFei / 3;
 
   return meldsMade === neededMelds;
+}
+
+/**
+ * 检查全字牌 / 全大炮 (All Honours / Tsuuiisou - 维基百科 10 番爆番)
+ * 整副手牌与副露全由字牌（东南西北、中发白）或飞牌组成，无任何筒子
+ */
+export function checkAllHonors(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  if (allTiles.length < 14) return false;
+  return allTiles.every(t => t.category === 'wind' || t.category === 'dragon' || t.category === 'fei');
+}
+
+/**
+ * 检查大四喜 (Big Four Winds - 维基百科 10 番爆番)
+ * 东南西北四组风牌刻子全齐
+ */
+export function checkBigFourWinds(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  const eastCount = allTiles.filter(t => t.id === 'wind_east').length;
+  const southCount = allTiles.filter(t => t.id === 'wind_south').length;
+  const westCount = allTiles.filter(t => t.id === 'wind_west').length;
+  const northCount = allTiles.filter(t => t.id === 'wind_north').length;
+  const feiCount = allTiles.filter(t => t.category === 'fei').length;
+
+  let missing = 0;
+  if (eastCount < 3) missing += (3 - eastCount);
+  if (southCount < 3) missing += (3 - southCount);
+  if (westCount < 3) missing += (3 - westCount);
+  if (northCount < 3) missing += (3 - northCount);
+
+  return missing <= feiCount;
+}
+
+/**
+ * 检查小四喜 (Little Four Winds - 维基百科 10 番爆番)
+ * 三组风牌刻子 + 一对风牌雀头
+ */
+export function checkLittleFourWinds(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  if (checkBigFourWinds(handTiles, melds)) return false;
+
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  const counts = [
+    allTiles.filter(t => t.id === 'wind_east').length,
+    allTiles.filter(t => t.id === 'wind_south').length,
+    allTiles.filter(t => t.id === 'wind_west').length,
+    allTiles.filter(t => t.id === 'wind_north').length,
+  ];
+  const feiCount = allTiles.filter(t => t.category === 'fei').length;
+
+  for (let pairIdx = 0; pairIdx < 4; pairIdx++) {
+    let missing = 0;
+    for (let i = 0; i < 4; i++) {
+      const req = i === pairIdx ? 2 : 3;
+      if (counts[i] < req) {
+        missing += (req - counts[i]);
+      }
+    }
+    if (missing <= feiCount) return true;
+  }
+  return false;
+}
+
+/**
+ * 检查大东南西 (Big Three Winds without North - 维基百科 5 番)
+ * 具备东、南、西三组刻子
+ */
+export function checkDaDongNanXi(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  const eastCount = allTiles.filter(t => t.id === 'wind_east').length;
+  const southCount = allTiles.filter(t => t.id === 'wind_south').length;
+  const westCount = allTiles.filter(t => t.id === 'wind_west').length;
+  const feiCount = allTiles.filter(t => t.category === 'fei').length;
+
+  let missing = 0;
+  if (eastCount < 3) missing += (3 - eastCount);
+  if (southCount < 3) missing += (3 - southCount);
+  if (westCount < 3) missing += (3 - westCount);
+
+  return missing <= feiCount;
+}
+
+/**
+ * 检查小东南西 (Little Three Winds without North - 维基百科 3 番)
+ * 具备东、南、西中两组刻子 + 一组雀头
+ */
+export function checkXiaoDongNanXi(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  if (checkDaDongNanXi(handTiles, melds)) return false;
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  const counts = [
+    allTiles.filter(t => t.id === 'wind_east').length,
+    allTiles.filter(t => t.id === 'wind_south').length,
+    allTiles.filter(t => t.id === 'wind_west').length,
+  ];
+  const feiCount = allTiles.filter(t => t.category === 'fei').length;
+
+  for (let pairIdx = 0; pairIdx < 3; pairIdx++) {
+    let missing = 0;
+    for (let i = 0; i < 3; i++) {
+      const req = i === pairIdx ? 2 : 3;
+      if (counts[i] < req) {
+        missing += (req - counts[i]);
+      }
+    }
+    if (missing <= feiCount) return true;
+  }
+  return false;
+}
+
+/**
+ * 检查全筒子平胡 (Pure Suit All Chows - 维基百科 4 番)
+ * 1. 全部为纯筒子
+ * 2. 没有任何副露刻子或手牌暗刻，4组面子全部为顺子 + 1对雀头
+ */
+export function checkPureAllChows(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  if (melds.some(m => m.type !== 'chow')) return false;
+
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  if (!allTiles.every(t => t.category === 'tong' || t.category === 'fei')) return false;
+
+  const regularTiles = handTiles.filter(t => t.category !== 'fei');
+  const feiCount = handTiles.filter(t => t.category === 'fei').length;
+  const neededChows = 4 - melds.length;
+  if (regularTiles.length + feiCount !== neededChows * 3 + 2) return false;
+
+  const counts = new Map<number, number>();
+  for (const t of regularTiles) {
+    const v = Number(t.value);
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+
+  for (let pair = 1; pair <= 9; pair++) {
+    const c = counts.get(pair) || 0;
+    if (c >= 2) {
+      counts.set(pair, c - 2);
+      if (canFormOnlyChows(counts, feiCount, neededChows)) return true;
+      counts.set(pair, c);
+    } else if (c >= 1 && feiCount >= 1) {
+      counts.set(pair, c - 1);
+      if (canFormOnlyChows(counts, feiCount - 1, neededChows)) return true;
+      counts.set(pair, c);
+    }
+  }
+  return false;
+}
+
+function canFormOnlyChows(counts: Map<number, number>, feiCount: number, neededChows: number): boolean {
+  if (neededChows === 0) {
+    for (const [, cnt] of counts.entries()) {
+      if (cnt > 0) return false;
+    }
+    return true;
+  }
+
+  let firstVal = 0;
+  for (let i = 1; i <= 9; i++) {
+    if ((counts.get(i) || 0) > 0) {
+      firstVal = i;
+      break;
+    }
+  }
+
+  if (firstVal === 0) {
+    return feiCount >= neededChows * 3;
+  }
+
+  if (firstVal > 7) return false;
+
+  const c1 = counts.get(firstVal) || 0;
+  const c2 = counts.get(firstVal + 1) || 0;
+  const c3 = counts.get(firstVal + 2) || 0;
+
+  if (c1 >= 1 && c2 >= 1 && c3 >= 1) {
+    counts.set(firstVal, c1 - 1);
+    counts.set(firstVal + 1, c2 - 1);
+    counts.set(firstVal + 2, c3 - 1);
+    if (canFormOnlyChows(counts, feiCount, neededChows - 1)) return true;
+    counts.set(firstVal, c1);
+    counts.set(firstVal + 1, c2);
+    counts.set(firstVal + 2, c3);
+  }
+
+  if (feiCount >= 1) {
+    if (c1 >= 1 && c2 >= 1) {
+      counts.set(firstVal, c1 - 1);
+      counts.set(firstVal + 1, c2 - 1);
+      if (canFormOnlyChows(counts, feiCount - 1, neededChows - 1)) return true;
+      counts.set(firstVal, c1);
+      counts.set(firstVal + 1, c2);
+    }
+    if (c1 >= 1 && c3 >= 1) {
+      counts.set(firstVal, c1 - 1);
+      counts.set(firstVal + 2, c3 - 1);
+      if (canFormOnlyChows(counts, feiCount - 1, neededChows - 1)) return true;
+      counts.set(firstVal, c1);
+      counts.set(firstVal + 2, c3);
+    }
+  }
+
+  if (feiCount >= 2 && c1 >= 1) {
+    counts.set(firstVal, c1 - 1);
+    if (canFormOnlyChows(counts, feiCount - 2, neededChows - 1)) return true;
+    counts.set(firstVal, c1);
+  }
+
+  return false;
+}
+
+/**
+ * 检查幺九 (Terminals and Honours - 维基百科 +1 番)
+ * 牌型为碰碰胡结构，且全部牌仅由 1筒、9筒、东南西北、中发白组成
+ */
+export function checkYaoJiu(handTiles: MahjongTileData[], melds: Meld[]): boolean {
+  if (!checkIsAllPongs(handTiles, melds)) return false;
+  const allTiles = [...handTiles];
+  melds.forEach(m => allTiles.push(...m.tiles));
+  return allTiles.every(t => {
+    if (t.category === 'fei') return true;
+    if (t.category === 'wind' || t.category === 'dragon') return true;
+    if (t.category === 'tong') return t.value === 1 || t.value === 9;
+    return false;
+  });
 }
 
 /**

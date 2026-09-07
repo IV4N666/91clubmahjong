@@ -24,11 +24,24 @@ export const DEFAULT_RULES: RuleSettings = {
   shooterPaysAll: true, // 出冲者一人全包 (大马三人麻将常见玩法：一人出冲包两家钱)
   enableAnimalBiteBonus: true, // 咬到奖励 (猫吃老鼠，鸡吃蜈蚣)
   animalBiteCashAmount: 1.00, // 咬到即时现金 RM 1.00
-  flowerSetFan: 2, // 一套花 (四季或四君子) 奖励 2 番
+  flowerSetFan: 4, // 一套花 (四季或四君子) 维基标准奖励 4 番
   allAnimalsFan: 5, // 抓齐四只动物 5 番
   noFeiBonusFan: 1, // 清飞 (无飞牌胡牌) 额外奖励 1 番
   fourFeiWinFan: 10, // 4只飞牌直接满胡 (10番)
   noFlowerBaoFan: 10, // 无花(清花)爆番，默认 10 番 (满胡)
+  faceTileFan: 1, // 每张人头牌计 1 番 (维基百科标准)
+  allHonorsFan: 10, // 全字牌/全大炮 默认 10 番 (满胡爆番)
+  bigFourWindsFan: 10, // 大四喜 默认 10 番 (满胡爆番)
+  littleFourWindsFan: 10, // 小四喜 默认 10 番 (满胡爆番)
+  fourKongsFan: 10, // 十八罗汉(四杠子) 默认 10 番 (满胡爆番)
+  fourConcealedPungsFan: 10, // 坎坎胡(四暗刻) 默认 10 番 (满胡爆番)
+  flowerHuFan: 10, // 花胡(八仙过海) 默认 10 番 (满胡爆番)
+  tianHuFan: 10, // 天胡 默认 10 番 (满胡爆番)
+  diHuFan: 10, // 地胡 默认 10 番 (满胡爆番)
+  pureAllChowsFan: 4, // 全筒子平胡 默认 4 番 (维基百科标准)
+  yaoJiuFan: 1, // 幺九 默认 1 番 (维基百科标准)
+  daDongNanXiFan: 5, // 大东南西 默认 5 番
+  xiaoDongNanXiFan: 3, // 小东南西 默认 3 番
   feiCalculationMode: 'cash', // 默认飞牌不算番，直接算现金 (如RM 0.50/张或RM 1.00/张)
   feiCashAmount: 0.50, // 默认每张飞牌 RM 0.50 (可自由编辑)
   enableKongImmediateCash: true, // 默认开杠即刻收钱
@@ -37,10 +50,11 @@ export const DEFAULT_RULES: RuleSettings = {
   fullFlushFan: 4, // 清一色 (全色) 默认 4 番
   allPongsFan: 2, // 碰碰胡 (对对胡) 默认 2 番
   pureStraightFan: 2, // 一条龙 (1-9筒) 默认 2 番
-  bigThreeDragonsFan: 5, // 大三元 默认 5 番
+  bigThreeDragonsFan: 10, // 大三元 默认 10 番 (维基百科爆番)
   smallThreeDragonsFan: 3, // 小三元 默认 3 番
   sevenPairsFan: 5, // 七对子 默认 5 番
   thirteenOrphansFan: 10, // 十三幺 默认 10 番 (满胡)
+  nineGatesFan: 10, // 九莲宝灯 (九子连环) 默认 10 番 (满胡)
   menqingFan: 1, // 门清 默认 1 番
   zimoFan: 1, // 自摸 额外默认 1 番
   kongBloomFan: 1, // 杠上开花 默认 1 番
@@ -56,6 +70,18 @@ export const DEFAULT_RULES: RuleSettings = {
   enableBigThreeDragons: true,
   enableSevenPairs: true,
   enableThirteenOrphans: true,
+  enableNineGates: true,
+  enableAllHonors: true,
+  enableBigFourWinds: true,
+  enableLittleFourWinds: true,
+  enableFourKongs: true,
+  enableFourConcealedPungs: true,
+  enableFlowerHu: true,
+  enableTianHuDiHu: true,
+  enablePureAllChows: true,
+  enableYaoJiu: true,
+  enableDaDongNanXi: true,
+  enableXiaoDongNanXi: true,
   enableMenqing: true,
   enableZimoBonus: true,
   enableKongBloom: true,

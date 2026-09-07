@@ -58,7 +58,15 @@ export const ANIMAL_TILES: MahjongTileData[] = [
   { id: 'animal_centipede', category: 'animal', value: 'centipede', nameZh: '蜈蚣', nameEn: 'Centipede', animalPair: 'animal_rooster', color: '#7c3aed' },
 ];
 
-// 全集字典
+// 人头牌 (Face tiles: 男人头 2张、女人头 2张 - 维基百科大马三人麻将标准 84 张牌)
+export const FACE_TILES: MahjongTileData[] = [
+  { id: 'face_male_1', category: 'face', value: 'male', nameZh: '男人头', nameEn: 'Man Face', color: '#0284c7' },
+  { id: 'face_male_2', category: 'face', value: 'male', nameZh: '男人头', nameEn: 'Man Face', color: '#0284c7' },
+  { id: 'face_female_1', category: 'face', value: 'female', nameZh: '女人头', nameEn: 'Woman Face', color: '#db2777' },
+  { id: 'face_female_2', category: 'face', value: 'female', nameZh: '女人头', nameEn: 'Woman Face', color: '#db2777' },
+];
+
+// 全集字典 (共84张大马三人麻将标准牌)
 export const ALL_TILES_MAP: Record<string, MahjongTileData> = {};
 [
   ...TONG_TILES,
@@ -67,6 +75,7 @@ export const ALL_TILES_MAP: Record<string, MahjongTileData> = {};
   ...FEI_TILES,
   ...FLOWER_TILES,
   ...ANIMAL_TILES,
+  ...FACE_TILES,
 ].forEach(tile => {
   ALL_TILES_MAP[tile.id] = tile;
 });

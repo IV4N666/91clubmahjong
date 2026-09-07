@@ -470,8 +470,8 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     let currentHand = [...activePlayer.hand];
     let currentFlowers = [...activePlayer.flowers];
 
-    // 摸到花牌或动物，自动补花
-    while ((drawn.category === 'flower' || drawn.category === 'animal') && currentWall.length > 0) {
+    // 摸到花牌、动物或人头牌，自动补花
+    while ((drawn.category === 'flower' || drawn.category === 'animal' || drawn.category === 'face') && currentWall.length > 0) {
       currentFlowers.push(drawn);
       soundFx.playTileClick();
       drawn = currentWall.pop()!;

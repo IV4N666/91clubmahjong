@@ -222,18 +222,23 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     gameModeRef.current = 'multiplayer';
     setGameMode('multiplayer');
 
-    const guestSeat = multiplayerService.mySeat;
+    // 优先采用房主专属指定的 assignedSeat，兜底采用 multiplayerService.mySeat
+    const guestSeat: GameSeatIndex = payload.assignedSeat !== undefined
+      ? (payload.assignedSeat as GameSeatIndex)
+      : (multiplayerService.mySeat as GameSeatIndex);
+
+    multiplayerService.mySeat = guestSeat;
     setMySeatIndex(guestSeat);
 
     if (payload.rules) {
       setActiveGameRules(payload.rules);
     }
-    if (payload.dealerIndex !== undefined) {
-      setDealerIndex(payload.dealerIndex);
-    }
-    if (payload.currentTurn !== undefined) {
-      setCurrentTurn(payload.currentTurn);
-    }
+    const dealer: GameSeatIndex = (payload.dealerIndex !== undefined ? payload.dealerIndex : 0) as GameSeatIndex;
+    setDealerIndex(dealer);
+
+    const turn: GameSeatIndex = (payload.currentTurn !== undefined ? payload.currentTurn : dealer) as GameSeatIndex;
+    setCurrentTurn(turn);
+
     if (payload.wallCount !== undefined) {
       const dummyWall = new Array(payload.wallCount).fill(null) as any;
       wallRef.current = dummyWall;
@@ -241,16 +246,33 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     }
     if (payload.players) {
       const syncedPlayers: GamePlayer[] = payload.players.map((p: GamePlayer, idx: number) => {
-        if (idx === guestSeat) {
+        const seat = idx as GameSeatIndex;
+        if (seat === guestSeat) {
           return {
             ...p,
+            seat,
             hand: sortHandTiles(p.hand),
           };
         }
-        return p;
+        return {
+          ...p,
+          seat,
+        };
       });
       playersRef.current = syncedPlayers;
       setPlayers(syncedPlayers);
+
+      const currentTurnPlayer = syncedPlayers[turn];
+      const isMyTurnNow = turn === guestSeat;
+      if (payload.bannerMsg) {
+        setBannerMsg(payload.bannerMsg);
+      } else {
+        setBannerMsg(
+          isMyTurnNow
+            ? '轮到你出牌！请选择一张手牌打出'
+            : `对局已开始！轮到 [${currentTurnPlayer?.name || '庄家'}] 出牌`
+        );
+      }
     }
 
     lastDiscardRef.current = null;
@@ -259,12 +281,6 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     setSettlement(null);
     setIsRecorded(false);
     setPhase('playing');
-
-    if (payload.bannerMsg) {
-      setBannerMsg(payload.bannerMsg);
-    } else {
-      setBannerMsg(`对局已开始！轮到 [${payload.players?.[payload.currentTurn || 0]?.name}] 出牌`);
-    }
   }, []);
 
   // --------------------------------------------------------------------------
@@ -278,6 +294,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
 
     const currentMode = forcedMode || gameModeRef.current;
+
+    // 联机模式下客端严禁在本地独立生成洗牌开局，只能接收房主的权威发牌
+    if ((currentMode === 'multiplayer' || gameModeRef.current === 'multiplayer') && !multiplayerService.isHost) {
+      console.warn('[MahjongGameTab] 联机客端不可在本地独立洗牌发牌，等待房主权威同步');
+      return;
+    }
+
     gameModeRef.current = currentMode;
     setGameMode(currentMode);
 
@@ -970,8 +993,14 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     if (hostRules) {
       setActiveGameRules(hostRules);
     }
-    if (mode === 'multiplayer' && !multiplayerService.isHost && initialPayload?.players) {
-      initGuestGameFromHost(initialPayload);
+    if (mode === 'multiplayer' && !multiplayerService.isHost) {
+      if (initialPayload?.players) {
+        initGuestGameFromHost(initialPayload);
+      } else {
+        // 客端绝不可在本地生成洗牌对局，保持就绪状态等待房主权威发牌
+        setPhase('idle');
+        setBannerMsg('已连接房间，等待房主发牌开局...');
+      }
     } else {
       startNewGame(roomPlayers, hostRules, mode);
     }
@@ -1004,6 +1033,13 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   activeGameRulesRef.current = activeGameRules;
 
   useEffect(() => {
+    // 监听房间成员更新，客端及时固化自己的专属席位
+    const unsubRoomUpdate = multiplayerService.on('roomUpdate', () => {
+      if (!multiplayerService.isHost && multiplayerService.mySeat !== undefined) {
+        setMySeatIndex(multiplayerService.mySeat);
+      }
+    });
+
     // 客端接收房主发起的开局或下一局
     const unsubGameStart = multiplayerService.on('gameStart', (payload: any) => {
       if (!multiplayerService.isHost && payload?.players) {
@@ -1094,15 +1130,23 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
     });
 
     return () => {
+      unsubRoomUpdate();
       unsubGameStart();
       unsubStateSync();
       unsubPlayerAction();
     };
   }, [initGuestGameFromHost]);
 
-  // 初次启动
+  // 初次启动：仅当不是通过房间邀请链接进入时，才初始化本地单机练习
   useEffect(() => {
-    startNewGame();
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const hasRoomParam = params?.get('room');
+    if (!hasRoomParam && !initialRoomCode) {
+      startNewGame();
+    } else {
+      setPhase('idle');
+      setBannerMsg('已进入好友联机大厅，等待加入或房主开局...');
+    }
     return () => {
       if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     };

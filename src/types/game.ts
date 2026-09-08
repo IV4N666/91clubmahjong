@@ -62,6 +62,7 @@ export type NetworkMessageType =
   | 'JOIN_REQUEST'
   | 'ROOM_SYNC'
   | 'GAME_START'
+  | 'GAME_START_ACK'
   | 'PLAYER_DISCARD'
   | 'PLAYER_CLAIM'
   | 'GAME_STATE_SYNC'

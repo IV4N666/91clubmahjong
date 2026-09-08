@@ -408,9 +408,20 @@ export class MultiplayerService {
         if (msg.payload?.rules) {
           this.hostRules = msg.payload.rules;
         }
+        if (msg.payload?.assignedSeat !== undefined) {
+          this.mySeat = msg.payload.assignedSeat;
+        }
+        // 客端向房主回复 ACK 确认已成功收到权威开局发牌包
+        this.sendToHost('GAME_START_ACK', { seat: this.mySeat });
         this.emit('gameStart', msg.payload);
         if (!this.eventListeners.get('gameStart')?.size) {
           this.onGameStart?.(msg.payload);
+        }
+        break;
+
+      case 'GAME_START_ACK':
+        if (this.isHost) {
+          console.log(`[MultiplayerService] 房主已确认收到来自座位 ${msg.senderSeat ?? msg.payload?.seat} 的开局同步确认`);
         }
         break;
 
@@ -453,13 +464,45 @@ export class MultiplayerService {
   }
 
   /**
-   * 房主广播房间座位与规则
+   * 房主广播房间座位与规则 (针对不同座位的客端精准携带专属 mySeat)
    */
   public broadcastRoomSync() {
-    this.broadcast('ROOM_SYNC', {
-      players: [...this.roomPlayers],
-      hostRules: this.hostRules,
-      roomCode: this.roomCode,
+    // 1. 点对点向每个有特定座位的客端发送带专属 mySeat 的 ROOM_SYNC
+    this.seatConnections.forEach((conn, seat) => {
+      if (conn.open) {
+        conn.send({
+          type: 'ROOM_SYNC',
+          senderId: this.myPlayerId,
+          payload: {
+            mySeat: seat,
+            players: [...this.roomPlayers],
+            hostRules: this.hostRules,
+            roomCode: this.roomCode,
+          },
+        });
+      }
+    });
+
+    // 2. 向未分配座位的其他通用连接广播
+    this.connections.forEach((conn) => {
+      let isSeatConn = false;
+      for (const sConn of this.seatConnections.values()) {
+        if (sConn.peer === conn.peer) {
+          isSeatConn = true;
+          break;
+        }
+      }
+      if (!isSeatConn && conn.open) {
+        conn.send({
+          type: 'ROOM_SYNC',
+          senderId: this.myPlayerId,
+          payload: {
+            players: [...this.roomPlayers],
+            hostRules: this.hostRules,
+            roomCode: this.roomCode,
+          },
+        });
+      }
     });
   }
 
@@ -485,15 +528,48 @@ export class MultiplayerService {
   }
 
   /**
-   * 房主发送开始游戏 (权威发牌只向客端广播，房主本地已由 startNewGame 完成初始化)
+   * 房主发送开始游戏 (针对每个客端精准指定其所属座位 assignedSeat，杜绝视角错位与独立洗牌)
    */
   public startGame(initialState?: any) {
     if (!this.isHost) return;
-    const payload = initialState || {
+    const basePayload = initialState || {
       players: [...this.roomPlayers],
       rules: this.hostRules!,
     };
-    this.broadcast('GAME_START', payload);
+
+    // 1. 点对点向每个真实客端连接下发开局权威发牌，并锁定指定客端席位
+    this.seatConnections.forEach((conn, seat) => {
+      if (conn.open) {
+        conn.send({
+          type: 'GAME_START',
+          senderId: this.myPlayerId,
+          senderSeat: this.mySeat,
+          payload: {
+            ...basePayload,
+            assignedSeat: seat,
+          },
+        });
+      }
+    });
+
+    // 2. 对其他可能存在的连接广播兜底
+    this.connections.forEach((conn) => {
+      let alreadySent = false;
+      for (const sConn of this.seatConnections.values()) {
+        if (sConn.peer === conn.peer) {
+          alreadySent = true;
+          break;
+        }
+      }
+      if (!alreadySent && conn.open) {
+        conn.send({
+          type: 'GAME_START',
+          senderId: this.myPlayerId,
+          senderSeat: this.mySeat,
+          payload: basePayload,
+        });
+      }
+    });
   }
 
   /**

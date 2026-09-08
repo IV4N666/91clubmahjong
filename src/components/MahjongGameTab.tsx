@@ -72,11 +72,11 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
   const [mySeatIndex, setMySeatIndex] = useState<GameSeatIndex>(0);
   const [phase, setPhase] = useState<'idle' | 'playing' | 'claimWindow' | 'roundOver'>('idle');
 
-  // 牌墙与 3 位玩家
+  // 牌墙与 3 位玩家 (对齐 App.tsx 与战绩账本体系: p1=Seat 0, p2=Seat 1, p3=Seat 2)
   const [wall, setWall] = useState<GameTile[]>([]);
   const [players, setPlayers] = useState<GamePlayer[]>([
     {
-      id: 'p0',
+      id: 'p1',
       name: '我',
       isAI: false,
       isHost: true,
@@ -89,7 +89,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       discards: [],
     },
     {
-      id: 'p1',
+      id: 'p2',
       name: '电脑 1 (对家)',
       isAI: true,
       isHost: false,
@@ -102,7 +102,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       discards: [],
     },
     {
-      id: 'p2',
+      id: 'p3',
       name: '电脑 2 (下家)',
       isAI: true,
       isHost: false,
@@ -250,12 +250,14 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
         if (seat === guestSeat) {
           return {
             ...p,
+            id: `p${seat + 1}`,
             seat,
             hand: sortHandTiles(p.hand),
           };
         }
         return {
           ...p,
+          id: `p${seat + 1}`,
           seat,
         };
       });
@@ -347,6 +349,7 @@ export const MahjongGameTab: React.FC<MahjongGameTabProps> = ({
       const sortedHand = sortHandTiles(replaced.hands[seat]);
       return {
         ...p,
+        id: `p${seat + 1}`,
         name: custom?.name || p.name,
         isAI: custom ? custom.isAI : p.isAI,
         seat,

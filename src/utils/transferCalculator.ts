@@ -9,6 +9,62 @@ export interface SettlementSummary {
 }
 
 /**
+ * 规范化单局战绩记录（自动兼容历史遗留的 p0 ID 或座位索引错位数据，实现自动修复自愈）
+ */
+export function normalizeRoundRecord(
+  round: GameRoundRecord,
+  players: Player[]
+): GameRoundRecord {
+  const p1Id = players[0]?.id || 'p1';
+  const p2Id = players[1]?.id || 'p2';
+  const p3Id = players[2]?.id || 'p3';
+
+  // 检测是否存在旧版 MahjongGameTab 的 p0 编号体系 (p0 对应 Seat 0 / 玩家 1，p1 对应 Seat 1 / 玩家 2，p2 对应 Seat 2 / 玩家 3)
+  const hasLegacyP0 =
+    round.winnerId === 'p0' ||
+    round.shooterId === 'p0' ||
+    round.payouts['p0'] !== undefined;
+
+  let winnerId = round.winnerId;
+  let shooterId = round.shooterId;
+  const normalizedPayouts: Record<string, number> = {};
+
+  if (hasLegacyP0) {
+    const legacySeatMap: Record<string, string> = {
+      p0: p1Id,
+      p1: p2Id,
+      p2: p3Id,
+    };
+
+    winnerId = legacySeatMap[round.winnerId] || round.winnerId;
+    if (round.shooterId) {
+      shooterId = legacySeatMap[round.shooterId] || round.shooterId;
+    }
+
+    for (const [key, amount] of Object.entries(round.payouts)) {
+      const targetId = legacySeatMap[key] || key;
+      normalizedPayouts[targetId] = (normalizedPayouts[targetId] || 0) + amount;
+    }
+  } else {
+    for (const [key, amount] of Object.entries(round.payouts)) {
+      normalizedPayouts[key] = amount;
+    }
+  }
+
+  // 确保 winnerId 若异常则回退到首位玩家
+  if (!players.some(p => p.id === winnerId)) {
+    winnerId = p1Id;
+  }
+
+  return {
+    ...round,
+    winnerId,
+    shooterId,
+    payouts: normalizedPayouts,
+  };
+}
+
+/**
  * 结算牌局战绩，计算最简化转账方案 (支持 DuitNow / TNG 快速平账)
  */
 export function calculateSessionSettlement(
@@ -23,8 +79,9 @@ export function calculateSessionSettlement(
 
   let totalPotPlayed = 0;
 
-  // 2. 累加每一局每位玩家收支
-  rounds.forEach(round => {
+  // 2. 累加每一局每位玩家收支 (自动执行数据规范化)
+  rounds.forEach(rawRound => {
+    const round = normalizeRoundRecord(rawRound, players);
     totalPotPlayed += round.totalPot;
     for (const [playerId, amount] of Object.entries(round.payouts)) {
       if (balanceMap[playerId] !== undefined) {

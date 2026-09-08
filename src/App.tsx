@@ -14,6 +14,7 @@ import { getTileById } from './constants/tiles';
 import { soundFx } from './utils/soundEffects';
 import { getFullShantenAnalysis } from './utils/mahjongEngine';
 import { calculateMahjongScore } from './utils/fanCalculator';
+import { normalizeRoundRecord } from './utils/transferCalculator';
 
 import { Navbar } from './components/Navbar';
 import { HandDisplay } from './components/HandDisplay';
@@ -86,7 +87,10 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem('mahjong_rounds');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((r: any) => normalizeRoundRecord(r, DEFAULT_PLAYERS));
+        }
       } catch {
         // ignore
       }
@@ -542,6 +546,9 @@ export const App: React.FC = () => {
         onUpdatePlayerNames={setPlayers}
         onDeleteRound={handleDeleteRound}
         onResetSession={handleResetSession}
+        onAddManualRound={(record) => {
+          setRounds(prev => [record, ...prev]);
+        }}
         lang={lang}
       />
 

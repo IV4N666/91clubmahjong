@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Player, GameRoundRecord } from '../types/mahjong';
+import React, { useState, useMemo } from 'react';
+import { Player, GameRoundRecord, RuleSettings } from '../types/mahjong';
 import { calculateSessionSettlement, normalizeRoundRecord } from '../utils/transferCalculator';
 import {
   History,
@@ -26,6 +26,7 @@ interface HistoryModalProps {
   onClose: () => void;
   players: Player[];
   rounds: GameRoundRecord[];
+  rules?: RuleSettings;
   onUpdatePlayerNames: (players: Player[]) => void;
   onDeleteRound: (roundId: string) => void;
   onResetSession: () => void;
@@ -38,6 +39,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onClose,
   players,
   rounds,
+  rules,
   onUpdatePlayerNames,
   onDeleteRound,
   onResetSession,
@@ -57,6 +59,38 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   const [manualAmount, setManualAmount] = useState<string>('10');
   const [customLosses, setCustomLosses] = useState<Record<string, string>>({});
   const [manualNotes, setManualNotes] = useState<string>('');
+
+  // 飞牌与杠牌辅助算番加成状态
+  const [showFeiKongHelper, setShowFeiKongHelper] = useState(false);
+  const [helperBaseFan, setHelperBaseFan] = useState<number>(() => rules?.minFan || 3);
+  const [helperFeiCount, setHelperFeiCount] = useState<number>(0);
+  const [helperMingKongCount, setHelperMingKongCount] = useState<number>(0);
+  const [helperAnKongCount, setHelperAnKongCount] = useState<number>(0);
+  const [helperIsKongBloom, setHelperIsKongBloom] = useState<boolean>(false);
+
+  // 辅助计算总番数
+  const calculatedHelperFan = useMemo(() => {
+    let fan = helperBaseFan;
+    if (helperFeiCount === 4) {
+      fan = rules?.fourFeiWinFan || 10;
+    } else {
+      fan += helperFeiCount;
+    }
+    fan += helperMingKongCount * 1;
+    fan += helperAnKongCount * 2;
+    if (helperIsKongBloom) fan += (rules?.kongBloomFan || 1);
+    return fan;
+  }, [helperBaseFan, helperFeiCount, helperMingKongCount, helperAnKongCount, helperIsKongBloom, rules]);
+
+  // 辅助折算金额
+  const activeBasePrice = rules?.basePrice || 1.0;
+  const calculatedHelperAmount = useMemo(() => {
+    let effFan = calculatedHelperFan;
+    if (rules?.maxFan && rules.maxFan > 0 && effFan > rules.maxFan) {
+      effFan = rules.maxFan;
+    }
+    return Number((effFan * activeBasePrice).toFixed(2));
+  }, [calculatedHelperFan, activeBasePrice, rules?.maxFan]);
 
   if (!isOpen) return null;
 
@@ -456,6 +490,173 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       </div>
                     )}
 
+                    {/* 🪽 飞牌与杠牌快捷算番加成折叠栏 (Fei & Kong Helper) */}
+                    <div className="bg-[#072517] border border-amber-500/40 rounded-xl p-2.5 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowFeiKongHelper(prev => !prev)}
+                          className="flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 min-w-0"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{lang === 'zh' ? '🪽 飞牌 / 杠牌 自动算番器' : 'Fei & Kong Fan Calculator'}</span>
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded shrink-0">
+                            {showFeiKongHelper ? (lang === 'zh' ? '收起 ▲' : 'Hide ▲') : (lang === 'zh' ? '点此展开计算 ▼' : 'Expand ▼')}
+                          </span>
+                        </button>
+                        {calculatedHelperFan > 0 && (
+                          <span className="text-[11px] font-black text-amber-300 shrink-0">
+                            共 {calculatedHelperFan} 番 · RM {calculatedHelperAmount.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+
+                      {showFeiKongHelper && (
+                        <div className="pt-2 border-t border-emerald-800/80 space-y-2.5 text-xs animate-fadeIn">
+                          {/* 基础牌型番数 */}
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                            <span className="text-emerald-300 text-[11px]">基础牌型番数 (如平胡/清一色)：</span>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5, 8].map(bf => (
+                                <button
+                                  key={bf}
+                                  type="button"
+                                  onClick={() => setHelperBaseFan(bf)}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                                    helperBaseFan === bf
+                                      ? 'bg-amber-400 text-slate-950 font-black shadow'
+                                      : 'bg-[#05170e] text-emerald-300 border border-emerald-700 hover:bg-emerald-900'
+                                  }`}
+                                >
+                                  {bf}番
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 飞牌张数 */}
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
+                            <span className="text-emerald-300 text-[11px] flex items-center gap-1">
+                              <span>🪽 飞牌张数 (每张 +1 番)：</span>
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {[0, 1, 2, 3, 4].map(fc => (
+                                <button
+                                  key={fc}
+                                  type="button"
+                                  onClick={() => setHelperFeiCount(fc)}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                                    helperFeiCount === fc
+                                      ? 'bg-amber-400 text-slate-950 font-black shadow'
+                                      : 'bg-[#05170e] text-emerald-300 border border-emerald-700 hover:bg-emerald-900'
+                                  }`}
+                                >
+                                  {fc === 0 ? '0飞' : fc === 4 ? '4飞满天飞' : `${fc}飞`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 杠牌加番计数 */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* 明杠 */}
+                            <div className="bg-[#05170e] p-2 rounded-xl border border-emerald-800 flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-[11px] text-emerald-200 font-bold">⚡ 明杠</span>
+                                <span className="text-[9px] text-emerald-400">+1 番/组</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setHelperMingKongCount(prev => Math.max(0, prev - 1))}
+                                  className="w-5 h-5 rounded bg-emerald-900 text-emerald-200 font-bold flex items-center justify-center text-xs hover:bg-emerald-800 active:scale-95"
+                                >
+                                  -
+                                </button>
+                                <span className="font-black text-amber-300 text-xs w-4 text-center">{helperMingKongCount}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setHelperMingKongCount(prev => prev + 1)}
+                                  className="w-5 h-5 rounded bg-emerald-900 text-emerald-200 font-bold flex items-center justify-center text-xs hover:bg-emerald-800 active:scale-95"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 暗杠 */}
+                            <div className="bg-[#05170e] p-2 rounded-xl border border-emerald-800 flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-[11px] text-emerald-200 font-bold">🛡️ 暗杠</span>
+                                <span className="text-[9px] text-emerald-400">+2 番/组</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setHelperAnKongCount(prev => Math.max(0, prev - 1))}
+                                  className="w-5 h-5 rounded bg-emerald-900 text-emerald-200 font-bold flex items-center justify-center text-xs hover:bg-emerald-800 active:scale-95"
+                                >
+                                  -
+                                </button>
+                                <span className="font-black text-amber-300 text-xs w-4 text-center">{helperAnKongCount}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setHelperAnKongCount(prev => prev + 1)}
+                                  className="w-5 h-5 rounded bg-emerald-900 text-emerald-200 font-bold flex items-center justify-center text-xs hover:bg-emerald-800 active:scale-95"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 杠上开花勾选 */}
+                          <div className="flex items-center justify-between bg-[#05170e] p-2 rounded-xl border border-emerald-800/70">
+                            <label className="flex items-center gap-2 cursor-pointer text-[11px] text-emerald-300">
+                              <input
+                                type="checkbox"
+                                checked={helperIsKongBloom}
+                                onChange={(e) => setHelperIsKongBloom(e.target.checked)}
+                                className="w-3.5 h-3.5 rounded text-amber-500 focus:ring-0 cursor-pointer"
+                              />
+                              <span className="font-bold">🌸 杠上开花自摸 (+1 番)</span>
+                            </label>
+                            <span className="text-[10px] text-amber-400/80 font-medium">
+                              底价 RM {activeBasePrice.toFixed(2)}/番
+                            </span>
+                          </div>
+
+                          {/* 一键填入折算金额 */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualAmount(String(calculatedHelperAmount));
+                              const tags: string[] = [];
+                              if (helperFeiCount > 0) tags.push(helperFeiCount === 4 ? '满天飞' : `${helperFeiCount}飞`);
+                              if (helperMingKongCount > 0) tags.push(`${helperMingKongCount}明杠`);
+                              if (helperAnKongCount > 0) tags.push(`${helperAnKongCount}暗杠`);
+                              if (helperIsKongBloom) tags.push('杠上开花');
+                              if (tags.length > 0) {
+                                setManualNotes(prev => {
+                                  const existing = prev ? prev.trim() : '';
+                                  const newTagStr = tags.join(' ');
+                                  return existing ? `${existing} ${newTagStr}` : newTagStr;
+                                });
+                              }
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition"
+                          >
+                            <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                            <span>
+                              {lang === 'zh'
+                                ? `填入此算番金额：RM ${calculatedHelperAmount.toFixed(2)} (共 ${calculatedHelperFan} 番)`
+                                : `Apply: RM ${calculatedHelperAmount.toFixed(2)} (${calculatedHelperFan} Fan)`}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* 金额输入 + 快捷药丸 */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-[11px]">
@@ -608,7 +809,22 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     className="w-full bg-[#061e12] border border-emerald-800 rounded-lg px-2.5 py-1.5 text-emerald-100 text-xs outline-none focus:ring-1 focus:ring-amber-400"
                   />
                   <div className="flex flex-wrap gap-1">
-                    {['自摸', '平胡', '清一色', '大四喜', '包三家', '杠上开花', '海底捞月'].map(tag => (
+                    {[
+                      '自摸',
+                      '平胡',
+                      '1飞',
+                      '2飞',
+                      '3飞',
+                      '4飞满天飞',
+                      '无飞',
+                      '明杠',
+                      '暗杠',
+                      '杠上开花',
+                      '清一色',
+                      '大四喜',
+                      '包三家',
+                      '海底捞月',
+                    ].map(tag => (
                       <button
                         key={tag}
                         type="button"

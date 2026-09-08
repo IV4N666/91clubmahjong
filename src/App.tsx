@@ -543,6 +543,7 @@ export const App: React.FC = () => {
         onClose={() => setIsHistoryOpen(false)}
         players={players}
         rounds={rounds}
+        rules={rules}
         onUpdatePlayerNames={setPlayers}
         onDeleteRound={handleDeleteRound}
         onResetSession={handleResetSession}

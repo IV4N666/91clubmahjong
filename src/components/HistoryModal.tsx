@@ -205,17 +205,17 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#14482e] to-[#0c2c1b] border border-amber-500/50 rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#14482e] to-[#0c2c1b] border border-amber-500/50 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-800 to-emerald-900 border-b border-emerald-700/60 p-4 text-emerald-100 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-800 to-emerald-900 border-b border-emerald-700/60 p-3.5 sm:p-4 text-emerald-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="w-5 h-5 text-amber-400" />
+            <History className="w-5 h-5 text-amber-400 shrink-0" />
             <div>
               <h2 className="font-mahjong font-bold text-base sm:text-lg">
                 {lang === 'zh' ? '战绩账本与终局转账结算' : 'Session History & Transfers'}
               </h2>
-              <p className="text-[11px] text-emerald-300">
+              <p className="text-[10px] sm:text-[11px] text-emerald-300">
                 {lang === 'zh' ? '自动汇总谁赢谁输，打完直接看谁转给谁' : 'Aggregates net balance and minimal P2P transfers'}
               </p>
             </div>
@@ -223,16 +223,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-emerald-300 flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-emerald-300 flex items-center justify-center transition shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* 滚动内容 */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-slate-100 flex-1 text-xs">
+        <div className="p-3 sm:p-5 overflow-y-auto space-y-3 sm:space-y-4 text-slate-100 flex-1 text-xs">
           {/* 1. 玩家名字修改折叠面板 */}
-          <div className="bg-[#0b2919] border border-emerald-800 rounded-2xl p-3.5 space-y-2">
+          <div className="bg-[#0b2919] border border-emerald-800 rounded-xl sm:rounded-2xl p-3 sm:p-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-amber-300 flex items-center gap-1.5">
                 <UserCheck className="w-4 h-4 text-emerald-400" />
@@ -291,68 +291,72 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           </div>
 
           {/* 实体线下打牌快速记账面板 (Physical Mahjong Manual Entry) */}
-          <div className="bg-gradient-to-r from-[#0d341f] via-[#0b2919] to-[#0d341f] border border-amber-500/50 rounded-2xl p-3.5 space-y-3 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="font-bold text-amber-300 text-sm">
-                  {lang === 'zh' ? '🀄 实体牌桌快速记账 (线下打牌无需算牌·直接记账)' : '🀄 Physical Table Ledger Entry'}
+          <div className="bg-gradient-to-r from-[#0d341f] via-[#0b2919] to-[#0d341f] border border-amber-500/50 rounded-2xl p-3 sm:p-4 space-y-3 shadow-lg">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-bold text-amber-300 text-xs sm:text-sm truncate">
+                  {lang === 'zh' ? '🀄 实体牌桌快速记账' : '🀄 Physical Table Ledger'}
+                </span>
+                <span className="hidden sm:inline-block text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full shrink-0 font-medium">
+                  {lang === 'zh' ? '无需算牌·直接记账' : 'Direct Win/Loss'}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddingManual(prev => !prev)}
-                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow active:scale-95 ${
+                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition shadow active:scale-95 ${
                   isAddingManual
                     ? 'bg-amber-600/80 text-amber-100 hover:bg-amber-600'
                     : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black'
                 }`}
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>{isAddingManual ? (lang === 'zh' ? '收起录入' : 'Collapse') : (lang === 'zh' ? '记一局 +' : 'Add Round +')}</span>
-                {isAddingManual ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>{isAddingManual ? (lang === 'zh' ? '收起' : 'Close') : (lang === 'zh' ? '记一局 +' : 'Add Round +')}</span>
+                {isAddingManual ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             </div>
 
             {isAddingManual && (
-              <div className="pt-2 border-t border-emerald-800/80 space-y-3 animate-fadeIn">
+              <div className="pt-2.5 border-t border-emerald-800/80 space-y-3 animate-fadeIn">
                 {/* 模式选择：快捷模式 vs 精准指定 */}
-                <div className="flex items-center gap-2 bg-[#061e12] p-1 rounded-xl border border-emerald-800">
+                <div className="grid grid-cols-2 gap-1.5 bg-[#061e12] p-1 rounded-xl border border-emerald-800">
                   <button
                     type="button"
                     onClick={() => setManualEntryType('quick')}
-                    className={`flex-1 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1 transition ${
+                    className={`py-1.5 px-1 rounded-lg font-bold text-xs flex items-center justify-center gap-1 transition ${
                       manualEntryType === 'quick'
-                        ? 'bg-amber-500 text-slate-950 shadow'
+                        ? 'bg-amber-500 text-slate-950 shadow font-black'
                         : 'text-emerald-300 hover:text-emerald-100'
                     }`}
                   >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>{lang === 'zh' ? '⚡ 快捷模式 (自摸/放炮)' : 'Quick Mode (Zimo/Discard)'}</span>
+                    <Zap className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{lang === 'zh' ? '⚡ 快捷模式 (自摸/出冲)' : 'Quick Mode'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setManualEntryType('custom')}
-                    className={`flex-1 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1 transition ${
+                    className={`py-1.5 px-1 rounded-lg font-bold text-xs flex items-center justify-center gap-1 transition ${
                       manualEntryType === 'custom'
-                        ? 'bg-amber-500 text-slate-950 shadow'
+                        ? 'bg-amber-500 text-slate-950 shadow font-black'
                         : 'text-emerald-300 hover:text-emerald-100'
                     }`}
                   >
-                    <Target className="w-3.5 h-3.5" />
-                    <span>{lang === 'zh' ? '🎯 精准指定 (各家输赢金额)' : 'Direct Loss per Player'}</span>
+                    <Target className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{lang === 'zh' ? '🎯 精准指定 (各家金额)' : 'Direct Loss'}</span>
                   </button>
                 </div>
 
                 {/* 1. 赢家选择 */}
                 <div>
                   <label className="text-[11px] text-amber-300 font-bold block mb-1.5 flex items-center gap-1">
-                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span>{lang === 'zh' ? '本局谁胡牌 (赢家)：' : 'Round Winner:'}</span>
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {players.map((p) => {
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    {players.map((p, idx) => {
                       const isSelected = manualWinnerId === p.id;
+                      const roleTag = idx === 0 ? '我' : idx === 1 ? '对家' : '下家';
                       return (
                         <button
                           key={p.id}
@@ -364,14 +368,19 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                               if (other) setManualShooterId(other.id);
                             }
                           }}
-                          className={`py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition ${
+                          className={`py-2 px-1 sm:px-2 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition min-w-0 ${
                             isSelected
                               ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-300 shadow-md font-black'
                               : 'bg-[#0a2315] border border-emerald-800 text-emerald-200 hover:bg-emerald-900/60'
                           }`}
                         >
-                          <Trophy className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-950' : 'text-amber-400'}`} />
-                          <span className="truncate">{p.name}</span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Trophy className={`w-3 h-3 shrink-0 ${isSelected ? 'text-slate-950' : 'text-amber-400'}`} />
+                            <span className="truncate max-w-[65px] sm:max-w-none">{p.name}</span>
+                          </div>
+                          <span className={`text-[10px] ${isSelected ? 'text-slate-900 font-bold' : 'text-emerald-400/90'}`}>
+                            ({roleTag})
+                          </span>
                         </button>
                       );
                     })}
@@ -381,21 +390,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 {/* 2. 快捷模式下的 胡牌方式 & 放炮者 */}
                 {manualEntryType === 'quick' ? (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <label className="text-[11px] text-emerald-300 font-bold block">
                         {lang === 'zh' ? '胡牌方式：' : 'Win Type:'}
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                         <button
                           type="button"
                           onClick={() => setManualWinType('zimo')}
-                          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                          className={`py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition ${
                             manualWinType === 'zimo'
                               ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow'
                               : 'bg-[#0a2315] border border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
                           }`}
                         >
-                          <span>🟢 {lang === 'zh' ? '自摸 (其余两家各付)' : 'Self-Drawn (Both Pay)'}</span>
+                          <span>🟢 {lang === 'zh' ? '自摸 (两家付)' : 'Self-Drawn'}</span>
                         </button>
                         <button
                           type="button"
@@ -406,13 +415,13 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                               if (other) setManualShooterId(other.id);
                             }
                           }}
-                          className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                          className={`py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition ${
                             manualWinType === 'discard'
                               ? 'bg-red-700 text-white ring-2 ring-red-400 shadow'
                               : 'bg-[#0a2315] border border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
                           }`}
                         >
-                          <span>🔴 {lang === 'zh' ? '出冲放炮 (一人包付)' : 'Discard (Shooter Pays)'}</span>
+                          <span>🔴 {lang === 'zh' ? '出冲 (一人包付)' : 'Discard'}</span>
                         </button>
                       </div>
                     </div>
@@ -422,7 +431,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <label className="text-[11px] text-red-300 font-bold block">
                           {lang === 'zh' ? '由谁出冲放炮 (包付)：' : 'Shooter (Paid full):'}
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                           {players
                             .filter(p => p.id !== manualWinnerId)
                             .map(p => {
@@ -432,13 +441,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                                   key={p.id}
                                   type="button"
                                   onClick={() => setManualShooterId(p.id)}
-                                  className={`py-1.5 px-2 rounded-xl font-bold text-xs transition ${
+                                  className={`py-1.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition min-w-0 ${
                                     isShooter
                                       ? 'bg-red-600 text-white shadow ring-2 ring-red-400'
                                       : 'bg-[#081e13] border border-red-900 text-red-300 hover:bg-red-900/40'
                                   }`}
                                 >
-                                  💥 {p.name} 放炮
+                                  <span className="shrink-0">💥</span>
+                                  <span className="truncate">{p.name} 放炮</span>
                                 </button>
                               );
                             })}
@@ -448,14 +458,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
 
                     {/* 金额输入 + 快捷药丸 */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] text-amber-300 font-bold">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <label className="text-amber-300 font-bold">
                           {manualWinType === 'zimo'
-                            ? (lang === 'zh' ? '每家各付金额 (RM)：' : 'Amount paid by each (RM):')
-                            : (lang === 'zh' ? '放炮包付金额 (RM)：' : 'Amount paid by shooter (RM):')}
+                            ? (lang === 'zh' ? '每家各付金额 (RM)：' : 'Amount each (RM):')
+                            : (lang === 'zh' ? '放炮包付金额 (RM)：' : 'Shooter pays (RM):')}
                         </label>
                         <span className="text-[10px] text-emerald-400">
-                          {manualWinType === 'zimo' ? '赢家总计将收双倍' : '放炮者全出，第三方免付'}
+                          {manualWinType === 'zimo' ? '两家各出此数' : '放炮者全包'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -466,20 +476,20 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           min="0"
                           value={manualAmount}
                           onChange={(e) => setManualAmount(e.target.value)}
-                          className="flex-1 bg-[#061e12] border border-amber-500/60 rounded-xl px-3 py-2 text-amber-300 font-black text-base outline-none focus:ring-2 focus:ring-amber-400"
+                          className="flex-1 bg-[#061e12] border border-amber-500/60 rounded-xl px-3 py-2 text-amber-300 font-black text-base outline-none focus:ring-2 focus:ring-amber-400 min-w-0"
                           placeholder="0.00"
                         />
                       </div>
-                      {/* 快捷金额预设 */}
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {[2, 5, 10, 20, 30, 40, 50, 80, 100].map(amt => (
+                      {/* 快捷金额预设：手机上整齐 4 列网格 */}
+                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 pt-1">
+                        {[2, 5, 10, 20, 30, 50, 80, 100].map(amt => (
                           <button
                             key={amt}
                             type="button"
                             onClick={() => setManualAmount(String(amt))}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                            className={`py-1.5 rounded-lg text-xs font-bold transition text-center ${
                               manualAmount === String(amt)
-                                ? 'bg-amber-400 text-slate-950 shadow'
+                                ? 'bg-amber-400 text-slate-950 shadow font-black'
                                 : 'bg-[#061e12] border border-emerald-800 text-emerald-300 hover:bg-emerald-900'
                             }`}
                           >
@@ -490,7 +500,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     </div>
                   </>
                 ) : (
-                  /* 精准指定模式：分别输入非赢家付给赢家的金额 */
+                  /* 精准指定模式：针对手机排版优化的上下结构 */
                   <div className="space-y-2">
                     <label className="text-[11px] text-amber-300 font-bold block">
                       {lang === 'zh' ? '分别指定各家输给赢家的金额：' : 'Specify amount lost to winner:'}
@@ -499,44 +509,55 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       {players
                         .filter(p => p.id !== manualWinnerId)
                         .map(p => (
-                          <div key={p.id} className="bg-[#081e13] border border-emerald-800 rounded-xl p-2.5 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 min-w-[90px]">
-                              <span className="w-5 h-5 rounded-full bg-red-900/60 text-red-300 text-[10px] font-bold flex items-center justify-center">
-                                付
-                              </span>
-                              <span className="font-bold text-emerald-100 text-xs truncate">
-                                {p.name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 flex-1 justify-end">
-                              <span className="text-amber-400 font-bold text-xs">付 RM</span>
-                              <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                value={customLosses[p.id] || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setCustomLosses(prev => ({ ...prev, [p.id]: val }));
-                                }}
-                                placeholder="0.00"
-                                className="w-24 bg-[#05170e] border border-emerald-700 rounded-lg px-2 py-1 text-right text-amber-300 font-black text-sm outline-none focus:ring-1 focus:ring-amber-400"
-                              />
-                              <div className="flex gap-1">
-                                {[5, 10, 20].map(add => (
-                                  <button
-                                    key={add}
-                                    type="button"
-                                    onClick={() => {
-                                      const cur = parseFloat(customLosses[p.id] || '0') || 0;
-                                      setCustomLosses(prev => ({ ...prev, [p.id]: String(cur + add) }));
-                                    }}
-                                    className="px-1.5 py-0.5 rounded bg-emerald-900/60 hover:bg-emerald-800 text-[10px] text-emerald-300 font-bold border border-emerald-700/60"
-                                  >
-                                    +{add}
-                                  </button>
-                                ))}
+                          <div key={p.id} className="bg-[#081e13] border border-emerald-800 rounded-xl p-2.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-5 h-5 rounded-full bg-red-900/60 text-red-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                  付
+                                </span>
+                                <span className="font-bold text-emerald-100 text-xs truncate">
+                                  {p.name}
+                                </span>
                               </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-amber-400 font-bold text-xs">付 RM</span>
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  value={customLosses[p.id] || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setCustomLosses(prev => ({ ...prev, [p.id]: val }));
+                                  }}
+                                  placeholder="0.00"
+                                  className="w-20 sm:w-24 bg-[#05170e] border border-emerald-700 rounded-lg px-2 py-1 text-right text-amber-300 font-black text-sm outline-none focus:ring-1 focus:ring-amber-400"
+                                />
+                              </div>
+                            </div>
+                            {/* 快捷累加药丸 */}
+                            <div className="flex items-center justify-end gap-1 pt-0.5 border-t border-emerald-900/60">
+                              <span className="text-[10px] text-emerald-400/80 mr-1">快捷累加:</span>
+                              {[5, 10, 20, 50].map(add => (
+                                <button
+                                  key={add}
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = parseFloat(customLosses[p.id] || '0') || 0;
+                                    setCustomLosses(prev => ({ ...prev, [p.id]: String(cur + add) }));
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-emerald-900/60 hover:bg-emerald-800 active:bg-emerald-700 text-[10px] text-emerald-300 font-bold border border-emerald-700/60"
+                                >
+                                  +{add}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setCustomLosses(prev => ({ ...prev, [p.id]: '0' }))}
+                                className="px-1.5 py-0.5 rounded bg-red-950/60 hover:bg-red-900 text-[10px] text-red-300 font-bold border border-red-900/60"
+                              >
+                                清零
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -545,15 +566,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 )}
 
                 {/* 3. 实时分账预览 */}
-                <div className="bg-[#061e12] border border-emerald-700/70 rounded-xl p-3 space-y-1.5">
+                <div className="bg-[#061e12] border border-emerald-700/70 rounded-xl p-2.5 sm:p-3 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px] font-bold text-emerald-300 border-b border-emerald-800 pb-1">
                     <span>{lang === 'zh' ? '💰 本局实时分账预览：' : 'Live Payout Breakdown:'}</span>
-                    <span className="text-amber-300 font-bold">
+                    <span className="text-amber-300 font-bold text-[10px]">
                       {lang === 'zh' ? '平账 零和验证 ✔' : 'Zero-Sum Checked ✔'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-1">
-                    <span className="font-bold text-emerald-200">
+                    <span className="font-bold text-emerald-200 text-xs">
                       赢家 【{currentPreview.winnerName}】
                     </span>
                     <span className="font-black text-emerald-300 text-sm">
@@ -563,10 +584,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   <div className="space-y-1 pt-1 border-t border-emerald-900">
                     {currentPreview.losses.map((loss) => (
                       <div key={loss.id} className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-300">
+                        <span className="text-slate-300 truncate mr-2">
                           {loss.name}
                         </span>
-                        <span className={`font-bold ${loss.pays > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                        <span className={`font-bold shrink-0 ${loss.pays > 0 ? 'text-red-400' : 'text-slate-400'}`}>
                           {loss.pays > 0 ? `-RM ${loss.pays.toFixed(2)}` : 'RM 0.00 (不付)'}
                         </span>
                       </div>
@@ -583,18 +604,18 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     type="text"
                     value={manualNotes}
                     onChange={(e) => setManualNotes(e.target.value)}
-                    placeholder={lang === 'zh' ? '例如：清一色、杠上开花、大四喜、包牌等' : 'e.g., Pure One-Suit, Kong Bloom'}
+                    placeholder={lang === 'zh' ? '例如：清一色、杠上开花、包牌等' : 'e.g., Pure One-Suit'}
                     className="w-full bg-[#061e12] border border-emerald-800 rounded-lg px-2.5 py-1.5 text-emerald-100 text-xs outline-none focus:ring-1 focus:ring-amber-400"
                   />
                   <div className="flex flex-wrap gap-1">
-                    {['自摸', '平胡', '清一色', '大四喜', '包三家', '杠上开花', '海底捞月', '十三么'].map(tag => (
+                    {['自摸', '平胡', '清一色', '大四喜', '包三家', '杠上开花', '海底捞月'].map(tag => (
                       <button
                         key={tag}
                         type="button"
                         onClick={() => {
                           setManualNotes(prev => (prev ? `${prev} ${tag}` : tag));
                         }}
-                        className="px-2 py-0.5 rounded-full bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-[10px] text-emerald-300 transition"
+                        className="px-2 py-0.5 rounded-full bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-[10px] text-emerald-300 transition active:scale-95"
                       >
                         +{tag}
                       </button>
@@ -608,15 +629,17 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     type="button"
                     onClick={handleSaveManualRound}
                     disabled={currentPreview.winnerGets <= 0}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs shadow-md transition flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 py-2.5 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs shadow-md transition flex items-center justify-center gap-1.5 active:scale-95 min-w-0"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>{lang === 'zh' ? `记入账本 (赢家进账 +RM ${currentPreview.winnerGets.toFixed(2)})` : 'Save to Ledger'}</span>
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      {lang === 'zh' ? `记入账本 (+RM ${currentPreview.winnerGets.toFixed(2)})` : `Save (+RM ${currentPreview.winnerGets.toFixed(2)})`}
+                    </span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsAddingManual(false)}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
+                    className="shrink-0 px-3 sm:px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
                   >
                     {lang === 'zh' ? '取消' : 'Cancel'}
                   </button>

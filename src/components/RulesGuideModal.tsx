@@ -133,8 +133,8 @@ export const RulesGuideModal: React.FC<RulesGuideModalProps> = ({
                     风牌（东南西北各4张=16张）与三元牌（红中、发财、白板各4张=12张）。
                   </div>
                   <div className="bg-emerald-950/70 p-2.5 rounded-xl border border-emerald-800">
-                    <span className="font-bold text-emerald-100 block mb-1">🌺 花牌、动物与人头（16张）：</span>
-                    四季+四君子（8张）、动物（4张）加 <b>人头牌（男头2张+女头2张=4张）</b>。整副牌共 <b>84 张</b>！
+                    <span className="font-bold text-emerald-100 block mb-1">🌺 花牌、动物与小丑（16张）：</span>
+                    四季+四君子（8张）、动物（4张）加 <b>小丑牌（4张 Joker，不分男女）</b>。整副牌共 <b>84 张</b>！
                   </div>
                 </div>
 

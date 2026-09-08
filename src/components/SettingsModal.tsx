@@ -2244,12 +2244,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
 
-                {/* 人头牌 (男人头 / 女人头) - Wikipedia Standard */}
+                {/* 小丑牌 (4张 Joker) - Malaysian Standard */}
                 <div className="border rounded-xl p-2.5 space-y-1.5 transition bg-[#092215] border-emerald-800/80">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-emerald-200 flex items-center gap-1">
-                      <span>👨👩</span>
-                      {lang === 'zh' ? '人头牌 (男/女头)' : 'Face Tiles'}
+                      <span>🃏</span>
+                      {lang === 'zh' ? '小丑牌 (4张 Joker)' : 'Joker Tiles (4 Jokers)'}
                     </span>
                     <span className="text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800">
                       +{tempRules.faceTileFan ?? 1} 番/张
@@ -2272,7 +2272,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     ))}
                   </div>
                   <span className="text-[10px] text-emerald-400/80 block">
-                    {lang === 'zh' ? '大马三人麻将84张配置（2男头+2女头），摸到即补牌并计番（维基每张计1番）。' : '84-tile Malaysian standard: +1 Fan per face tile.'}
+                    {lang === 'zh' ? '大马三人麻将84张配置（共4张Joker，不分男女），摸到即补花并计番。' : '84-tile Malaysian standard: 4 Joker tiles, +1 Fan per Joker.'}
                   </span>
                 </div>
               </div>

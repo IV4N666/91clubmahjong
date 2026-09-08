@@ -249,16 +249,16 @@ export function calculateMahjongScore(
   const flowers = flowerAndAnimals.filter(t => t.category === 'flower');
   const faces = flowerAndAnimals.filter(t => t.category === 'face');
 
-  // 人头牌 (每张人头牌计一番 - 维基百科大马三人麻将标准规则)
+  // 小丑牌 (Joker 每张计一番，大马三人麻将标准规则)
   if (faces.length > 0) {
     const faceFan = (rules.faceTileFan ?? 1) * faces.length;
     fanItems.push({
       id: 'faces_count',
-      nameZh: `人头牌 (${faces.length}张)`,
-      nameEn: `Face Tiles (${faces.length})`,
+      nameZh: `小丑牌 (${faces.length}张 Joker)`,
+      nameEn: `Joker Tiles (${faces.length})`,
       fan: faceFan,
-      descriptionZh: `摸得【${faces.map(f => f.nameZh).join('、')}】，每张人头牌计 ${rules.faceTileFan ?? 1} 番（维基百科标准）。`,
-      descriptionEn: `Face tiles captured (+${faceFan} Fan).`,
+      descriptionZh: `摸得【${faces.map(f => f.nameZh).join('、')}】，每张 Joker 牌计 ${rules.faceTileFan ?? 1} 番。`,
+      descriptionEn: `Joker bonus tiles captured (+${faceFan} Fan).`,
       category: 'flower',
     });
   }

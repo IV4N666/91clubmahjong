@@ -58,12 +58,12 @@ export const ANIMAL_TILES: MahjongTileData[] = [
   { id: 'animal_centipede', category: 'animal', value: 'centipede', nameZh: '蜈蚣', nameEn: 'Centipede', animalPair: 'animal_rooster', color: '#7c3aed' },
 ];
 
-// 人头牌 (Face tiles: 男人头 2张、女人头 2张 - 维基百科大马三人麻将标准 84 张牌)
+// 小丑牌 (Joker tiles: 4张 Joker，大马三人麻将 84 张标准牌，不分男女)
 export const FACE_TILES: MahjongTileData[] = [
-  { id: 'face_male_1', category: 'face', value: 'male', nameZh: '男人头', nameEn: 'Man Face', color: '#0284c7' },
-  { id: 'face_male_2', category: 'face', value: 'male', nameZh: '男人头', nameEn: 'Man Face', color: '#0284c7' },
-  { id: 'face_female_1', category: 'face', value: 'female', nameZh: '女人头', nameEn: 'Woman Face', color: '#db2777' },
-  { id: 'face_female_2', category: 'face', value: 'female', nameZh: '女人头', nameEn: 'Woman Face', color: '#db2777' },
+  { id: 'face_joker_1', category: 'face', value: 'joker', nameZh: 'Joker', nameEn: 'Joker', color: '#7c3aed' },
+  { id: 'face_joker_2', category: 'face', value: 'joker', nameZh: 'Joker', nameEn: 'Joker', color: '#7c3aed' },
+  { id: 'face_joker_3', category: 'face', value: 'joker', nameZh: 'Joker', nameEn: 'Joker', color: '#7c3aed' },
+  { id: 'face_joker_4', category: 'face', value: 'joker', nameZh: 'Joker', nameEn: 'Joker', color: '#7c3aed' },
 ];
 
 // 全集字典 (共84张大马三人麻将标准牌)
@@ -83,6 +83,10 @@ export const ALL_TILES_MAP: Record<string, MahjongTileData> = {};
 // 快速根据 id 获取牌数据
 export function getTileById(id: string): MahjongTileData {
   if (ALL_TILES_MAP[id]) return ALL_TILES_MAP[id];
+  // 兼容旧版人头牌 id
+  if (id.startsWith('face_male') || id.startsWith('face_female') || id.startsWith('face_joker')) {
+    return FACE_TILES[0];
+  }
   // 兼容飞牌简写
   if (id.startsWith('fei')) return FEI_TILES[0];
   // 默认兜底

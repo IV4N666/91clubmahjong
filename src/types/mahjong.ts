@@ -4,7 +4,7 @@ export type WindValue = 'east' | 'south' | 'west' | 'north';
 export type DragonValue = 'zhong' | 'fa' | 'bai';
 export type FlowerValue = 'chun' | 'xia' | 'qiu' | 'dong' | 'mei' | 'lan' | 'zhu' | 'ju';
 export type AnimalValue = 'cat' | 'rat' | 'rooster' | 'centipede';
-export type FaceValue = 'male' | 'female';
+export type FaceValue = 'male' | 'female' | 'joker';
 
 export interface MahjongTileData {
   id: string; // e.g. 'tong_1', 'wind_east', 'fei_1', 'flower_chun', 'animal_cat', 'face_male_1'

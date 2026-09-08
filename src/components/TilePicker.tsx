@@ -389,10 +389,10 @@ export const TilePicker: React.FC<TilePickerProps> = ({
               </div>
             </div>
 
-            {/* 人头牌 (男人头、女人头) */}
+            {/* 小丑牌 (4张 Joker) */}
             <div>
-              <div className="text-xs font-bold text-sky-300 mb-1 flex items-center gap-1">
-                <span>🎭 {lang === 'zh' ? '人头牌（大马三人麻将 84 张标准牌）：' : 'Face Tiles (Malaysian 84-tile set):'}</span>
+              <div className="text-xs font-bold text-purple-300 mb-1 flex items-center gap-1">
+                <span>🃏 {lang === 'zh' ? '小丑牌（4张 Joker，大马三人麻将 84 张标准牌）：' : 'Joker Tiles (4 Jokers, Malaysian 84-tile set):'}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {FACE_TILES.map((t) => {
@@ -405,7 +405,7 @@ export const TilePicker: React.FC<TilePickerProps> = ({
                         disabled={used >= 1}
                         onClick={() => handleTileClick(t)}
                       />
-                      <span className="text-[10px] text-sky-300 mt-0.5">
+                      <span className="text-[10px] text-purple-300 mt-0.5 font-bold">
                         {t.nameZh} (+1番)
                       </span>
                     </div>

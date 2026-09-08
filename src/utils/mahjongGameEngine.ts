@@ -14,6 +14,14 @@ import { checkIsWin } from './mahjongEngine';
 import { calculateMahjongScore } from './fanCalculator';
 
 /**
+ * 判断是否为花牌类（花牌、动物、小丑/人头牌）
+ * 这类牌不可在手牌中存在，必须放入花牌区并摸牌补花
+ */
+export function isBonusTile(tile: { category: string }): boolean {
+  return tile.category === 'flower' || tile.category === 'animal' || tile.category === 'face';
+}
+
+/**
  * 生成大马三人麻将标准 84 张牌库 (维基百科标准)
  * - 1-9 筒：各 4 张 = 36 张
  * - 东/南/西/北：各 4 张 = 16 张
@@ -21,7 +29,7 @@ import { calculateMahjongScore } from './fanCalculator';
  * - 飞牌：4 张
  * - 花牌：春/夏/秋/冬/梅/兰/竹/菊 = 8 张
  * - 动物：猫/鼠/鸡/蜈蚣 = 4 张
- * - 人头：男人头(2张)/女人头(2张) = 4 张
+ * - 小丑牌：4 张 (4张 Joker，不分男女)
  * 总计：84 张
  */
 export function generateMalaysia3PDeck(): GameTile[] {
@@ -155,7 +163,7 @@ export function replaceFlowersInHands(
       const flowerTiles: GameTile[] = [];
 
       for (const tile of newHands[p]) {
-        if (tile.category === 'flower' || tile.category === 'animal' || tile.category === 'face') {
+        if (isBonusTile(tile)) {
           flowerTiles.push(tile);
         } else {
           regularTiles.push(tile);
@@ -176,6 +184,19 @@ export function replaceFlowersInHands(
         newHands[p] = [...regularTiles, ...drawnReplacements];
       }
     }
+  }
+
+  // 最终安全保障：确保手牌中绝对不残留任何花牌
+  for (let p = 0; p < newHands.length; p++) {
+    const finalRegular: GameTile[] = [];
+    for (const tile of newHands[p]) {
+      if (isBonusTile(tile)) {
+        newFlowers[p].push(tile);
+      } else {
+        finalRegular.push(tile);
+      }
+    }
+    newHands[p] = finalRegular;
   }
 
   return {

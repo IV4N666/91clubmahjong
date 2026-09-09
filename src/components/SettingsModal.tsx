@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RuleSettings } from '../types/mahjong';
-import { PRESET_BASE_PRICES, PRESET_FEI_PRICES, WIKIPEDIA_STANDARD_RULES } from '../constants/defaultRules';
+import { DEFAULT_RULES, PRESET_BASE_PRICES, PRESET_FEI_PRICES, WIKIPEDIA_STANDARD_RULES } from '../constants/defaultRules';
 import {
   Settings,
   X,
@@ -24,6 +24,21 @@ interface SettingsModalProps {
   onSelectTab?: (tab: 'calculator' | 'game') => void;
 }
 
+const sanitizeRules = (r?: Partial<RuleSettings>): RuleSettings => {
+  const source = r || {};
+  return {
+    ...DEFAULT_RULES,
+    ...source,
+    basePrice: typeof source.basePrice === 'number' && !isNaN(source.basePrice) ? source.basePrice : DEFAULT_RULES.basePrice,
+    feiCalculationMode: source.feiCalculationMode === 'fan' ? 'fan' : 'cash',
+    feiCashAmount: typeof source.feiCashAmount === 'number' && !isNaN(source.feiCashAmount) ? source.feiCashAmount : (DEFAULT_RULES.feiCashAmount ?? 0.50),
+    enableKongImmediateCash: source.enableKongImmediateCash !== undefined ? !!source.enableKongImmediateCash : DEFAULT_RULES.enableKongImmediateCash,
+    kongImmediateFan: typeof source.kongImmediateFan === 'number' && !isNaN(source.kongImmediateFan) ? source.kongImmediateFan : (DEFAULT_RULES.kongImmediateFan ?? 2),
+    baoFanMultiplier: typeof source.baoFanMultiplier === 'number' && !isNaN(source.baoFanMultiplier) ? source.baoFanMultiplier : (DEFAULT_RULES.baoFanMultiplier ?? 20),
+    customTierTable: Array.isArray(source.customTierTable) && source.customTierTable.length > 0 ? source.customTierTable : DEFAULT_RULES.customTierTable,
+  };
+};
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -34,7 +49,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   activeTab,
   onSelectTab,
 }) => {
-  const [tempRules, setTempRules] = useState<RuleSettings>({ ...rules });
+  const [tempRules, setTempRules] = useState<RuleSettings>(() => sanitizeRules(rules));
+
+  useEffect(() => {
+    if (isOpen) {
+      setTempRules(sanitizeRules(rules));
+    }
+  }, [isOpen, rules]);
 
   if (!isOpen) return null;
 
@@ -44,7 +65,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const updateTierAmount = (fan: number, amount: number) => {
-    const updated = tempRules.customTierTable.map(t =>
+    const table = Array.isArray(tempRules.customTierTable) ? tempRules.customTierTable : DEFAULT_RULES.customTierTable;
+    const updated = table.map(t =>
       t.fan === fan ? { ...t, amount } : t
     );
     setTempRules({ ...tempRules, customTierTable: updated });
@@ -318,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <p className="text-emerald-300 text-[11px] leading-relaxed">
                   {lang === 'zh'
-                    ? `• 10 番以内：几番就拿几底（例如 5番拿 5底 RM ${(tempRules.basePrice * 5).toFixed(2)}，7番拿 7底 RM ${(tempRules.basePrice * 7).toFixed(2)}，10番拿 10底 RM ${(tempRules.basePrice * 10).toFixed(2)}）。`
+                    ? `• 10 番以内：几番就拿几底（例如 5番拿 5底 RM ${((tempRules.basePrice ?? 0.50) * 5).toFixed(2)}，7番拿 7底 RM ${((tempRules.basePrice ?? 0.50) * 7).toFixed(2)}，10番拿 10底 RM ${((tempRules.basePrice ?? 0.50) * 10).toFixed(2)}）。`
                     : `• Up to 10 Fan: Score = Fan × Base Price (e.g. 7 Fan = 7 × Base).`}
                 </p>
                 <div className="pt-2 border-t border-emerald-800/60 flex flex-wrap items-center justify-between gap-2">
@@ -345,7 +367,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
                   <span className="text-amber-400 font-bold text-xs">
-                    = RM {(tempRules.basePrice * (tempRules.baoFanMultiplier ?? 20)).toFixed(2)} / 家
+                    = RM {((tempRules.basePrice ?? 0.50) * (tempRules.baoFanMultiplier ?? 20)).toFixed(2)} / 家
                   </span>
                 </div>
               </div>
@@ -358,7 +380,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {lang === 'zh' ? '自定义各番数结算金额 (RM)：' : 'Custom Price per Fan (RM):'}
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {tempRules.customTierTable.slice(0, 8).map((t) => (
+                  {(tempRules.customTierTable || DEFAULT_RULES.customTierTable).slice(0, 8).map((t) => (
                     <div key={t.fan} className="flex items-center justify-between bg-emerald-950 p-1.5 rounded-lg border border-emerald-800">
                       <span className="text-emerald-300 text-[11px]">{t.fan} 番:</span>
                       <div className="flex items-center gap-1">
@@ -510,7 +532,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setTempRules({ ...tempRules, feiCalculationMode: 'cash' })}
+                onClick={() =>
+                  setTempRules((prev) => ({
+                    ...prev,
+                    feiCalculationMode: 'cash',
+                    feiCashAmount: typeof prev.feiCashAmount === 'number' && !isNaN(prev.feiCashAmount) ? prev.feiCashAmount : 0.50,
+                  }))
+                }
                 className={`p-2.5 rounded-xl border text-left transition ${
                   tempRules.feiCalculationMode === 'cash'
                     ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow'
@@ -530,7 +558,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setTempRules({ ...tempRules, feiCalculationMode: 'fan' })}
+                onClick={() =>
+                  setTempRules((prev) => ({
+                    ...prev,
+                    feiCalculationMode: 'fan',
+                  }))
+                }
                 className={`p-2.5 rounded-xl border text-left transition ${
                   tempRules.feiCalculationMode === 'fan'
                     ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow'
@@ -562,9 +595,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="number"
                       step="0.10"
                       min="0.05"
-                      value={tempRules.feiCashAmount}
+                      value={tempRules.feiCashAmount ?? 0.50}
                       onChange={(e) =>
-                        setTempRules({ ...tempRules, feiCashAmount: parseFloat(e.target.value) || 0.1 })
+                        setTempRules((prev) => ({ ...prev, feiCashAmount: parseFloat(e.target.value) || 0.1 }))
                       }
                       className="w-20 bg-[#0c2e1c] border border-amber-500 rounded-lg px-2 py-1 text-right text-amber-300 font-bold text-sm outline-none focus:ring-1 focus:ring-amber-400"
                     />
@@ -580,9 +613,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <button
                       key={price}
                       type="button"
-                      onClick={() => setTempRules({ ...tempRules, feiCashAmount: price })}
+                      onClick={() => setTempRules((prev) => ({ ...prev, feiCashAmount: price }))}
                       className={`px-2.5 py-0.5 rounded-lg font-bold text-xs transition ${
-                        tempRules.feiCashAmount === price
+                        (tempRules.feiCashAmount ?? 0.50) === price
                           ? 'bg-amber-500 text-slate-950 shadow'
                           : 'bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900'
                       }`}
@@ -595,8 +628,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* 动态计算说明 */}
                 <div className="text-[11px] text-amber-300/90 pt-1 bg-amber-950/30 p-2 rounded-lg border border-amber-900/50">
                   💡 {lang === 'zh'
-                    ? `实时换算：持 2 张飞牌 = 直接额外收 2 × RM ${tempRules.feiCashAmount.toFixed(2)} = RM ${(2 * tempRules.feiCashAmount).toFixed(2)}（不算入手牌番数）。`
-                    : `Example: 2 Fei tiles = 2 × RM ${tempRules.feiCashAmount.toFixed(2)} = RM ${(2 * tempRules.feiCashAmount).toFixed(2)} cash.`}
+                    ? `实时换算：持 2 张飞牌 = 直接额外收 2 × RM ${(tempRules.feiCashAmount ?? 0.50).toFixed(2)} = RM ${(2 * (tempRules.feiCashAmount ?? 0.50)).toFixed(2)}（不算入手牌番数）。`
+                    : `Example: 2 Fei tiles = 2 × RM ${(tempRules.feiCashAmount ?? 0.50).toFixed(2)} = RM ${(2 * (tempRules.feiCashAmount ?? 0.50)).toFixed(2)} cash.`}
                 </div>
               </div>
             )}
@@ -649,10 +682,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <p>
                     {lang === 'zh'
-                      ? `当前底价 RM ${tempRules.basePrice.toFixed(2)} × 开杠 ${tempRules.kongImmediateFan} 番 = 每次开杠立收 `
-                      : `Base RM ${tempRules.basePrice.toFixed(2)} × ${tempRules.kongImmediateFan} Fan = `}
+                      ? `当前底价 RM ${(tempRules.basePrice ?? 0.50).toFixed(2)} × 开杠 ${tempRules.kongImmediateFan ?? 2} 番 = 每次开杠立收 `
+                      : `Base RM ${(tempRules.basePrice ?? 0.50).toFixed(2)} × ${tempRules.kongImmediateFan ?? 2} Fan = `}
                     <span className="font-black text-amber-400 text-sm">
-                      RM {(tempRules.basePrice * tempRules.kongImmediateFan).toFixed(2)}
+                      RM {((tempRules.basePrice ?? 0.50) * (tempRules.kongImmediateFan ?? 2)).toFixed(2)}
                     </span>
                     {lang === 'zh' ? ' / 组！' : ' per Kong!'}
                   </p>

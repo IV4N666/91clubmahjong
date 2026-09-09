@@ -62,7 +62,19 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem('mahjong_rules');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_RULES,
+            ...parsed,
+            basePrice: typeof parsed.basePrice === 'number' && !isNaN(parsed.basePrice) ? parsed.basePrice : DEFAULT_RULES.basePrice,
+            feiCalculationMode: parsed.feiCalculationMode === 'fan' ? 'fan' : 'cash',
+            feiCashAmount: typeof parsed.feiCashAmount === 'number' && !isNaN(parsed.feiCashAmount) ? parsed.feiCashAmount : (DEFAULT_RULES.feiCashAmount ?? 0.50),
+            enableKongImmediateCash: parsed.enableKongImmediateCash !== undefined ? !!parsed.enableKongImmediateCash : DEFAULT_RULES.enableKongImmediateCash,
+            kongImmediateFan: typeof parsed.kongImmediateFan === 'number' && !isNaN(parsed.kongImmediateFan) ? parsed.kongImmediateFan : (DEFAULT_RULES.kongImmediateFan ?? 2),
+            customTierTable: Array.isArray(parsed.customTierTable) && parsed.customTierTable.length > 0 ? parsed.customTierTable : DEFAULT_RULES.customTierTable,
+          };
+        }
       } catch {
         // ignore
       }

@@ -313,10 +313,10 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                   <span>此房间将同步您设置的规则：</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1 text-[11px] text-emerald-300/80">
-                  <div>底价：<span className="text-white font-bold">RM {rules.basePrice.toFixed(2)}</span></div>
+                  <div>底价：<span className="text-white font-bold">RM {(rules.basePrice ?? 0.50).toFixed(2)}</span></div>
                   <div>起胡：<span className="text-white font-bold">{rules.minFan} 番起胡</span></div>
                   <div>倍数：<span className="text-white font-bold">{rules.multiplierType === 'linear' ? '1番1底' : '每番翻倍'}</span></div>
-                  <div>飞牌：<span className="text-white font-bold">{rules.feiCalculationMode === 'cash' ? `现金 RM ${rules.feiCashAmount}` : '+1番'}</span></div>
+                  <div>飞牌：<span className="text-white font-bold">{rules.feiCalculationMode === 'cash' ? `现金 RM ${(rules.feiCashAmount ?? 0.50).toFixed(2)}` : '+1番'}</span></div>
                 </div>
               </div>
 
@@ -408,10 +408,10 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                   <span className="text-emerald-300 font-black">{activeRules.minFan} 番起胡</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1 text-[11px] text-emerald-300/80">
-                  <div>底价：<span className="text-white font-bold">RM {activeRules.basePrice.toFixed(2)}</span></div>
+                  <div>底价：<span className="text-white font-bold">RM {(activeRules.basePrice ?? 0.50).toFixed(2)}</span></div>
                   <div>算番模式：<span className="text-white font-bold">{activeRules.multiplierType === 'linear' ? '1番1底' : '每番翻倍'}</span></div>
-                  <div>飞牌结算：<span className="text-white font-bold">{activeRules.feiCalculationMode === 'cash' ? `每张 RM ${activeRules.feiCashAmount}` : '+1番/张'}</span></div>
-                  <div>开杠收钱：<span className="text-white font-bold">{activeRules.enableKongImmediateCash ? `即收 ${activeRules.kongImmediateFan}番` : '关闭'}</span></div>
+                  <div>飞牌结算：<span className="text-white font-bold">{activeRules.feiCalculationMode === 'cash' ? `每张 RM ${(activeRules.feiCashAmount ?? 0.50).toFixed(2)}` : '+1番/张'}</span></div>
+                  <div>开杠收钱：<span className="text-white font-bold">{activeRules.enableKongImmediateCash ? `即收 ${activeRules.kongImmediateFan ?? 2}番` : '关闭'}</span></div>
                 </div>
               </div>
 
